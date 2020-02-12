@@ -33,13 +33,20 @@ for (well in wellDatasList){
   wellsWNamesList[[i]] <- well %>% mutate(wellName = wellNames[[i]])
   i <- i + 1
 }
-#git config --global user.email "you@example.com"
-#git config --global user.name "Your Name"
+
 
 #make one master data table with all the wells
 allWellData <- do.call(rbind, wellsWNamesList)
 allWellData
 
-test <- 0
+#read in well info csv to do next step
+
+
+
+#make things > max == NA ,do left join between well data and info file to get pipe height, next do pipe height adjustment on allWellData
+
+
+  
+#cap means capacitance
 
 ```
