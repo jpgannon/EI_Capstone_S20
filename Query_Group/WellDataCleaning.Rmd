@@ -1,0 +1,45 @@
+---
+title: "Well Water Data Cleaning"
+author: "Erica Schermerhorn"
+date: "2/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+The code below reads in all the csv files containing the well data, then adds a column containing the well name and appends all the well's tibbles together into one big master tibble called allWellsData.
+```{r}
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
+
+
+#read in all csvs into a list, with each data table accessible by each well's name
+wellDatasList <- list()
+setwd("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/WS3_waterlevel_data/")
+for (well in wellNames){
+  wellDatasList[[well]] <- read_csv(paste(well,"csv", sep = "."))
+}
+
+
+#add the well name column for each well's data table
+i <- 1
+wellsWNamesList <- list()
+for (well in wellDatasList){
+  wellsWNamesList[[i]] <- well %>% mutate(wellName = wellNames[[i]])
+  i <- i + 1
+}
+#git config --global user.email "you@example.com"
+#git config --global user.name "Your Name"
+
+#make one master data table with all the wells
+allWellData <- do.call(rbind, wellsWNamesList)
+allWellData
+
+test <- 0
+
+```
