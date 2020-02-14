@@ -1,6 +1,6 @@
 
 
-#this is a test
+#this is a test test test 
 
 #this is script creates a master dataframe containing the cleaned data from 
 #all wells in watershed 3
@@ -56,8 +56,8 @@ for (x in well_names){
   #change readings of -99 to NA
   well_files[[x]]$level[well_files[[x]]$level == -99] <- NA
   
-  #change readings greater than 162 (may be 168, must ask JP on this) to NA
-  well_files[[x]]$level[well_files[[x]]$level >= 162] <- NA
+  #change readings greater than 168 to NA
+  well_files[[x]]$level[well_files[[x]]$level >= 168] <- NA
   
   #subtract pipe height based on well metadata
   PH <- well_locations$PipeHt[well_locations$Well == x]
