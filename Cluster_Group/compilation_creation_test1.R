@@ -28,11 +28,11 @@ wells_df <- wells_df %>%
          date = date.) %>% 
   select(date, Well, level)
 
-#Joining wells_info to data.frame with a left join and changing
-  #-99s to NA
-wells_df <- left_join(wells_df, wells_info, by = "Well") %>% 
-  replace(. == -99, NA)
+#Joining wells_info with a left join and changing
+  #-99s  to NA
+wells_df <- left_join(wells_df, wells_info, by = "Well")
 
+wells_df$level <- replace(wells_df$level, wells_df$level > 168 | wells_df$level == -99, NA)
 
 #Adjusting water depth based on water level and pipe height
 wells_long <- wells_df %>%
@@ -40,7 +40,8 @@ wells_long <- wells_df %>%
   select(date, Well, water_depth) %>% #Selecting usable rows in long data format
   group_by(date)
 
-
+welldata %>% arrange(wtdepth)
+wells_long %>% arrange(water_depth)
 wells_long %>%
   arrange(water_depth) %>% 
   str()
@@ -50,9 +51,8 @@ wells_long %>%
   count(is.na(water_depth))
 
 #writing data to csv
-write_csv(wells_long, "D:/Capstone/data/updated_data.csv")
-updated <- read_csv("updated_data.csv")
-
+write_csv(wells_long, "D:/Capstone/data/compiled_well_data.csv")
+updated <- read_csv("D:/Capstone/data/compiled_well_data.csv")
 
 
 #Making data wide so that rows are date, columns are Wells, and values are level
@@ -75,7 +75,7 @@ wells_wide <- wells_long %>%
 write_csv(wells_wide, "wide_data.csv")
 
 #View() wide data
-wells_wide %>% 
+wells_wide %>% x
   arrange(date) %>% 
   View()
   
