@@ -4,6 +4,8 @@
 #shinyWidgets::shinyWidgetsGallery()
 library(shiny)
 library(devtools)
+library(tidyverse)
+library(lubridate)
 
 # Define UI ----
 ui <- fluidPage(
@@ -13,24 +15,24 @@ ui <- fluidPage(
   
   # Select multiple wells
   # needs up to date well names
-  selectInput("select", label = h3("Select Well(s)"), 
+    selectInput("select", label = h3("Select Well(s)"), 
               choices = list("1" = 1, "2" = 2, "3" = 3), multiple = TRUE),
   
   # Date selection
       #Select whether user wants single date or range to choose from
       selectInput('range', "Single Date or Range", 
                       choices = c("Single Date", "Date Range"),
-                      selected = "Single Date"),
+                      selected = "Date Range"),
           
       #if user chose single date, show a single date input box
       conditionalPanel(condition = "input.range == 'Single Date'",
-          dateInput("dRange", "Date:", value = "2010-08-01", 
+          dateInput("date", "Date:", value = "2010-08-01", 
                     format = "mm/dd/yy")),
           
       #if user chose date range, show a date range input box
       conditionalPanel(condition = "input.range == 'Date Range'",
-          dateRangeInput("dRange", "Date Range:", start = "2010-08-01", end = "2013-01-10",
-                         format = "mm/dd/yy")),
+          dateRangeInput("dRange", "Date Range:", start = "2010-08-01", 
+                         end = "2013-01-10", format = "mm/dd/yy")),
   
   # Stream Flow Button
   checkboxInput("checkbox", label = "View Stream Flow Data", value = FALSE),
@@ -77,8 +79,8 @@ server <- function(input, output) {
     # filters graph by wells selected
     #wells <- filter(well_data, Well == ID)
     
-    start <- input$dRange[1]
-    end <- input$dRange[2]
+    start_d <- input$dRange[1]
+    end_d <- input$dRange[2]
     xmin <- input$plot_brush$xmin
     xmax <- input$plot_brush$xmax
     
@@ -88,7 +90,10 @@ server <- function(input, output) {
       scale_y_reverse()+
       ylab("Water Table Depth (cm)")+
       xlab("Date") + 
-      coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
+        # makes the auto zoom work, but manual input date doesnt work
+      # coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+ 
+        # makes the manual input date work, but the auto zoom doesnt work (also single date doesnt work)
+      coord_cartesian(xlim = c(as.POSIXct(input$dRange[1]), as.POSIXct(input$dRange[2])))+
       theme_classic()
   })
   
@@ -99,7 +104,6 @@ server <- function(input, output) {
                  if (!is.null(brush)) 
                  {
                    ranges$x <- c(brush$xmin, brush$xmax)
-                   #input$dRange <- ranges$x
                    
                  } else {
                    ranges$x <- maxrange$x
