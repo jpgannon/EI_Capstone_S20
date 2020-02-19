@@ -45,16 +45,18 @@ head(precip)
 precip <- precip %>%
   filter(precip$watershed == 3)
 
-
+#Filter for dates selected
 precip_select <- filter(precip, Precip == Precip, DATE >= start, DATE <= end)
 
+#creates a plot of precipitation within selected date range
 p2 <- ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
   geom_line()+
-  ylab("Precipitation (millimeter")+
+  ylab("Precipitation (millimeter)")+
+  scale_y_reverse()+
   theme_classic()
 
 
-
+#stacks plots on top of eachother 
 grid.arrange(p1, p2, nrow = 2)
 
 
