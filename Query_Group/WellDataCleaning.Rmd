@@ -50,6 +50,8 @@ wellDataJoined$level <-  na_if(wellDataJoined$level, -99)
 #subtract pipe height from level
 finalWellData <- wellDataJoined %>% mutate(level = level - PipeHt)
 
+#make date a datetime type
+finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = as.Date(date))
 finalWellData
 
 ```
