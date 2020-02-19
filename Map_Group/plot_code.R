@@ -5,6 +5,12 @@ library(tidyverse)
 library(lubridate)
 library(stringr)
 
+install.packages("data.table", 
+                 type = "source",
+                 repos = "http://Rdatatable.github.io/data.table" )
+
+library(data.table)
+
 #Set working directory
 setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/WS3_waterlevel_data")
 
@@ -45,10 +51,12 @@ welldata$level <- replace(welldata$level, welldata$level > 168, NA)
 #Subtract pipe height from level in order to get column that is depth of water table to surface 
 welldata$wtdepth <- welldata$level - welldata$PipeHt
 
-#Select for only columns wanted and rearranges columns
+#Select only columns wanted and rearranges columns
 welldata <- select(welldata, Well, date, wtdepth, level, PipeHt, X, Y)
 
 head(welldata)
 
 #creates new csv file with the dataframe
 write.csv(welldata, "well_data.csv")
+
+
