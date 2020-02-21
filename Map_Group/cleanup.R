@@ -5,11 +5,7 @@ library(tidyverse)
 library(lubridate)
 library(stringr)
 
-install.packages("data.table", 
-                 type = "source",
-                 repos = "http://Rdatatable.github.io/data.table" )
 
-library(data.table)
 
 #Set working directory
 setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/WS3_waterlevel_data")
@@ -54,9 +50,24 @@ welldata$wtdepth <- welldata$level - welldata$PipeHt
 #Select only columns wanted and rearranges columns
 welldata <- select(welldata, Well, date, wtdepth, level, PipeHt, X, Y)
 
-head(welldata)
 
 #creates new csv file with the dataframe
-write.csv(welldata, "well_data.csv")
+write_csv(welldata, "well_data.csv", append = FALSE, col_names = TRUE)
+
+well_data <- read_csv("well_data.csv")
+
+
+
+
+#Precipitation data
+
+#reads in daily precipitation by watershed data
+precip <- read_csv("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/dailyWatershedPrecip1956-2019.csv")
+
+head(precip)
+
+#filter for only watershed 3
+precip <- precip %>%
+  filter(precip$watershed == 3)
 
 
