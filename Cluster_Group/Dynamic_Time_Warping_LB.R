@@ -63,6 +63,8 @@ label_list <- c(rep(well_names[1], sum(sample_na_omit$Well == well_names[1])),
                 rep(well_names[3], sum(sample_na_omit$Well == well_names[3])),
                 rep(well_names[4], sum(sample_na_omit$Well == well_names[4])))
 
+library(dtw)
+
 distance_sample <- dist(sample_na_omit$level, method = "DTW") #This should preform the DTW
 
 hc_sample <- hclust(distance_sample, method = "average") #This creates the hierarchical cluster
