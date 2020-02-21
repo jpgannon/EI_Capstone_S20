@@ -18,11 +18,14 @@ wells_df <- tibble(filename = files) %>%
                              ~read_csv(file.path(.))) 
         ) %>% 
   unnest()
+
+#looking at well data structure
 wells_df %>%
   arrange(level) %>% 
   str()
 
 #Add a Well_ID column with ".csv"s removed
+#Selecting out date, well, and levels columns
 wells_df <- wells_df %>% 
   mutate(Well = str_replace(wells_df$filename, ".csv", ""),
          date = date.) %>% 
@@ -37,10 +40,11 @@ wells_df$level <- replace(wells_df$level, wells_df$level > 168 | wells_df$level 
 #Adjusting water depth based on water level and pipe height
 wells_long <- wells_df %>%
   mutate(water_depth = level - PipeHt) %>% 
-  select(date, Well, water_depth) %>% #Selecting usable rows in long data format
+  select(date, Well, level, water_depth) %>% #Selecting usable rows in long data format
   group_by(date)
 
-welldata %>% arrange(wtdepth)
+
+#looking at final data
 wells_long %>% arrange(water_depth)
 wells_long %>%
   arrange(water_depth) %>% 
@@ -53,42 +57,3 @@ wells_long %>%
 #writing data to csv
 write_csv(wells_long, "D:/Capstone/data/compiled_well_data.csv")
 updated <- read_csv("D:/Capstone/data/compiled_well_data.csv")
-
-
-#Making data wide so that rows are date, columns are Wells, and values are level
-#Might not be necessary
-#Lots of problems with NULL and not enough RAM to create unique row ids and remove them
-wells_long %>% 
-  mutate(row = row_number()) %>% 
-  pivot_wider(names_from = Well, values_from = water_depth) %>% 
-  select(-row) %>%
-  arrange(date)
-
-wells_long %>% 
-  pivot_wider(names_from = Well, values_from = water_depth) %>% 
-  write.csv("wide_data.csv")
-
-wells_wide <- wells_long %>% 
-  pivot_wider(names_from = Well, values_from = water_depth) %>% 
-  arrange(date)
-
-write_csv(wells_wide, "wide_data.csv")
-
-#View() wide data
-wells_wide %>% x
-  arrange(date) %>% 
-  View()
-  
-#testing filtering of data
-#does not work with the dataset
-a5 <- filter(wells_long, Well == "A5")
-a6 <- filter(wells_long, Well == "A6")
-
-ID = c("A5")
-start <- ymd("2012-05-12")
-end <- ymd("2012-06-02")
-
-filtered <- filter(wells_long, Well == ID & date >= start & date <= end)
-
-
-
