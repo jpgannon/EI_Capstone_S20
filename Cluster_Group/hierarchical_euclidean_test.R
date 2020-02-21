@@ -9,6 +9,7 @@ library(ggdendro)
 #2. Any missing data value in the data must be removed or estimated
 #3. The data must be standardized/scaled to make variables comparable
 
+#Trying HC with sample tutorial data -------------------------------------------
 #removing NA values
 df <- USArrests
 df <- na.omit(df)
