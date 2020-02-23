@@ -132,3 +132,9 @@ hourly$date. <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
 hourly <- hourly %>% ungroup() %>%
   select(Well, date., level, wtdepth) 
 
+hourly$bySixHours <- cut(hourly$date., breaks = "6 hours")
+
+sixHourSummary <- hourly %>% 
+  group_by(Well, bySixHours) %>% 
+  summarise(median(level), median(wtdepth))
+
