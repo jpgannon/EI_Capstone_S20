@@ -1,7 +1,5 @@
 
 
-#this is a test test test 
-
 #this is script creates a master dataframe containing the cleaned data from 
 #all wells in watershed 3
 
@@ -42,6 +40,7 @@ for (x in 1:nrow(well_locations)){
 #name each tibble in the list appropriately
 #each wells data can now be pulled by calling well_files[["well name"]]
 names(well_files) <- well_names
+
 
 
 
@@ -110,6 +109,26 @@ welldata$wtdepth <- welldata$level - welldata$PipeHt
 welldata <- select(welldata, date., level, Well, PipeHt, wtdepth)
 
 #create csv file with the new data frame (makes app simpler by taking away need to do data wrangling in app)
-write.csv(welldata, "allwelldata.csv")
+write.csv(welldata, "C:/Capstone/Data/allwelldata.csv")
 
+
+###quick plot
+welldata %>% filter(Well == "O2") %>%
+  ggplot(aes(date., wtdepth))+
+  geom_line()
+
+
+
+#####group by time frames########
+welldata$date <- ymd_hms(welldata$date)
+
+welldata %>% group_by(Well, year(date), month(date), day(date), hour(date)) %>%
+  summarize(median(level), median(wtdepth)) -> hourly
+
+colnames(hourly) <- c("Well", "year","month","day", "hour", "level","wtdepth")  
+
+hourly$date <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
+
+hourly <- hourly %>% ungroup() %>%
+  select(Well, date, level, wtdepth) 
 
