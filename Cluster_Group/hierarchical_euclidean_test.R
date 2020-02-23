@@ -107,4 +107,56 @@ ggdendrogram(fit_dend, rotate = TRUE, theme_dendro = FALSE) +
 # All server logic in one file, 
 #server global UI**
 
+#trying HC with common date range for JD wells excluding JD03 and JD08
+jd_filter <- c("JD01", "JD02", "JD04", "JD05", "JD06", "JD07",
+             "JD10", "JD11", "JD12", "JD13", "JD14", "JD15", "JD16", "JD17",
+             "JD18","JD19", "JD20", "JD21", "JD22", "JD23", "JD24", "JD25", 
+             "JD26", "JD27", "JD28", "JD29", "JD30")
 
+
+write_csv(jd_hc, "D:/Capstone/data/jd_wells.csv")
+jd_hc <- well_df %>% 
+  filter(Well %in% jd_filter,
+         date >= "2008-01-01",
+         date <= "2008-04-15")
+
+ggplot(jd_hc,
+       aes(x = date,
+           y = water_depth,
+           color = Well)) +
+  geom_point()
+
+jd_NAs <- jd_hc %>% 
+  filter(is.na(water_depth))
+#-------------------------------------------------------------------------------------
+#trying HC with JD wells from 2008-01-01 to 2008-04-15
+setwd("D:/Capstone/data")
+jd_wells <- read_csv("jd_wells.csv")
+
+jd_wells %>% 
+  arrange(date)
+
+jd_wide <- jd_wells %>%
+  select(Well, date, water_depth) %>% 
+  pivot_wider(names_from = Well,
+              values_from = water_depth)
+
+#template for dendrogram
+jd_dist <- dist(meanss, method = "euclidean")
+fit_dend <- hclust(jd_dist, method = "ward.D")
+plot(fit_dend, family = "Arial")
+rect.hclust(fit_dend, k = 5, border = "cyan")
+
+#plotting dendrogram for JD wells
+transposed <- t(jd_wide[-1])
+jd_dis <- dist(transposed, method = "euclidean")
+fit_dend <- hclust(jd_dis, method = "ward.D")
+rect.hclust(fit_dend, k = 5, border = "cyan")
+plot(fit_dend, family = "Arial")
+
+??ggdendrogam
+ggdendrogram(fit_dend, rotate = TRUE, theme_dendro = FALSE) +
+  theme_minimal() + xlab("") + ylab("")
+
+clustered_data <- cutree(fit_dend, k = 4)
+clustered_data_tidy <- as.data.frame(as.table(clustered_data))
