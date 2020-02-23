@@ -109,7 +109,7 @@ welldata$wtdepth <- welldata$level - welldata$PipeHt
 welldata <- select(welldata, date., level, Well, PipeHt, wtdepth)
 
 #create csv file with the new data frame (makes app simpler by taking away need to do data wrangling in app)
-write.csv(welldata, "C:/Capstone/Data/allwelldata.csv")
+#(welldata, "C:/Capstone/Data/allwelldata.csv")
 
 
 ###quick plot
@@ -120,15 +120,15 @@ welldata %>% filter(Well == "O2") %>%
 
 
 #####group by time frames########
-welldata$date <- ymd_hms(welldata$date)
+welldata$date. <- ymd_hms(welldata$date.)
 
-welldata %>% group_by(Well, year(date), month(date), day(date), hour(date)) %>%
+welldata %>% group_by(Well, year(date.), month(date.), day(date.), hour(date.)) %>%
   summarize(median(level), median(wtdepth)) -> hourly
 
 colnames(hourly) <- c("Well", "year","month","day", "hour", "level","wtdepth")  
 
-hourly$date <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
+hourly$date. <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
 
 hourly <- hourly %>% ungroup() %>%
-  select(Well, date, level, wtdepth) 
+  select(Well, date., level, wtdepth) 
 
