@@ -113,9 +113,9 @@ welldata <- select(welldata, date., level, Well, PipeHt, wtdepth)
 
 
 ###quick plot
-welldata %>% filter(Well == "O2") %>%
-  ggplot(aes(date., wtdepth))+
-  geom_line()
+#welldata %>% filter(Well == "O2") %>%
+#  ggplot(aes(date., wtdepth))+
+#  geom_line()
 
 
 
@@ -123,7 +123,7 @@ welldata %>% filter(Well == "O2") %>%
 welldata$date. <- ymd_hms(welldata$date.)
 
 welldata %>% group_by(Well, year(date.), month(date.), day(date.), hour(date.)) %>%
-  summarize(median(level), median(wtdepth)) -> hourly
+  summarize(median(level, na.rm = TRUE), median(wtdepth, na.rm = TRUE)) -> hourly
 
 colnames(hourly) <- c("Well", "year","month","day", "hour", "level","wtdepth")  
 
@@ -136,5 +136,8 @@ hourly$bySixHours <- cut(hourly$date., breaks = "6 hours")
 
 sixHourSummary <- hourly %>% 
   group_by(Well, bySixHours) %>% 
-  summarise(median(level), median(wtdepth))
+  summarise(median(level, na.rm = TRUE), median(wtdepth, na.rm = TRUE))
 
+colnames(sixHourSummary) = c("Well", "Time", "Level", "WtDepth")
+
+write_csv(sixHourSummary, "C:/Capstone/Data/sixHourSummary.csv")
