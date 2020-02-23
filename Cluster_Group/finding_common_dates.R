@@ -88,4 +88,34 @@ k12 <- well_df %>%
   filter(Well == "K12")
 
 combo <- k1_to_k12 + n1_to_t1
-combo
+combo 
+
+
+#narrowing down dates
+filter3 <- c("JD01", "JD02", "JD03", "JD04", "JD05", "JD06", "JD07", "JD08",
+             "JD10", "JD11", "JD12", "JD13", "JD14", "JD15", "JD16", "JD17",
+             "JD18","JD19", "JD20", "JD21", "JD22", "JD23", "JD24", "JD25", 
+             "JD26", "JD27", "JD28", "JD29", "JD30")
+wells_set3 <- has_data %>% 
+  filter(Well %in% filter3,
+         date >= "2008-01-01",
+         date <= "2010-01-01")
+
+ggplot(wells_set3,
+       aes(x = date,
+           y = Well,
+           color = has_data)) +
+  geom_point()
+
+
+
+filter6 <- c("N1", "N2", "N3", "N4", "N5", "O1", "O2", "P1", "P2", "Q1", "Q2", "T1")
+wells_set6 <- has_data %>% 
+  filter(Well %in% filter6,
+         date >= "2011-01-01",
+         date <= "2014-01-01")
+ggplot(wells_set6,
+       aes(x = date,
+           y = Well,
+           color = has_data)) +
+  geom_point()
