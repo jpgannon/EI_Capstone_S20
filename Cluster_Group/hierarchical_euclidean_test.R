@@ -158,5 +158,6 @@ plot(fit_dend, family = "Arial")
 ggdendrogram(fit_dend, rotate = TRUE, theme_dendro = FALSE) +
   theme_minimal() + xlab("") + ylab("")
 
+
 clustered_data <- cutree(fit_dend, k = 4)
 clustered_data_tidy <- as.data.frame(as.table(clustered_data))
