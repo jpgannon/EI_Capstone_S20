@@ -23,17 +23,22 @@ target <- c("JD01", "JD02", "JD04", "JD05", "JD06", "JD07", "JD10",
             "JD19", "JD20", "JD21", "JD22", "JD23", "JD24", "JD25", "JD26",
             "JD27", "JD28", "JD29", "JD30")
 
+#filtering test data for tsclust test
 JDWells <- sixHourSummary %>% 
   filter(Well %in% target,
          Time >= start_date,
          Time <= end_date) 
 
+#create list of list for tsclust function
 JDWellsList <- lapply(split(JDWells$WtDepth, JDWells$Well), as.list)
 
+#run k-shape clustering algorithms with 5 clusters
 results <- tsclust(JDWellsList, type = "partitional", 5, distance = "sbd")
 
+#plot cluster results
 plot(results)
 
+#create df of cluster results
 members <- data.frame(target, results@cluster)
 
 
