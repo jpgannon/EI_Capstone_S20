@@ -141,11 +141,6 @@ jd_wide <- jd_wells %>%
   pivot_wider(names_from = Well,
               values_from = water_depth)
 
-#template for dendrogram
-jd_dist <- dist(meanss, method = "euclidean")
-fit_dend <- hclust(jd_dist, method = "ward.D")
-plot(fit_dend, family = "Arial")
-rect.hclust(fit_dend, k = 5, border = "cyan")
 
 #plotting dendrogram for JD wells
 transposed <- t(jd_wide[-1])
@@ -218,4 +213,4 @@ ggplot(joined_clusters,
            y = water_depth,
            color = Cluster)) +
   geom_point() +
-  scale_color_gradient(low = "blue", high = "red")
+  scale_color_gradient(low = "yellow", high = "red")
