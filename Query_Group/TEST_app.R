@@ -40,7 +40,7 @@ ui <- fluidPage(
   # Precipitation Slider
   sliderInput("slider", label = h3("Precipitation Range (units)"), min = 0, max = 100, value = c(20, 50)),
   
-  # plot and ability to zoom into plot (DO NOT TOUCH plz - katie)
+  # plot and ability to zoom into plot 
   fluidRow(column(width = 10, offset = 1, class = "well",
            h4("To zoom: Click and drag box, then double click. Double click plot to zoom back out."),
            plotOutput("wellplot", 
@@ -71,7 +71,7 @@ server <- function(input, output) {
   ranges <- reactiveValues(x = as.POSIXct(c(start = "2010-08-01", end = "2013-01-10")))
   maxrange <- reactiveValues(x = as.POSIXct(c(start = "2010-08-01", end = "2013-01-10")))
   
-  # plot (DO NOT TOUCH plz - katie)
+  # plot 
   output$wellplot <- renderPlot({
     
     # ID = well number
@@ -97,7 +97,7 @@ server <- function(input, output) {
       theme_classic()
   })
   
-  # ability to zoom into plot (DO NOT TOUCH plz - katie)
+  # ability to zoom into plot 
   observeEvent(input$plot1_dblclick,
                {
                  brush <- input$plot1_brush

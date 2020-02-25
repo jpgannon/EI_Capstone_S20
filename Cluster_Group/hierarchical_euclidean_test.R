@@ -141,11 +141,6 @@ jd_wide <- jd_wells %>%
   pivot_wider(names_from = Well,
               values_from = water_depth)
 
-#template for dendrogram
-jd_dist <- dist(meanss, method = "euclidean")
-fit_dend <- hclust(jd_dist, method = "ward.D")
-plot(fit_dend, family = "Arial")
-rect.hclust(fit_dend, k = 5, border = "cyan")
 
 #plotting dendrogram for JD wells
 transposed <- t(jd_wide[-1])
@@ -158,6 +153,64 @@ plot(fit_dend, family = "Arial")
 ggdendrogram(fit_dend, rotate = TRUE, theme_dendro = FALSE) +
   theme_minimal() + xlab("") + ylab("")
 
-
+#Getting clusters from hclust()
 clustered_data <- cutree(fit_dend, k = 4)
 clustered_data_tidy <- as.data.frame(as.table(clustered_data))
+colnames(clustered_data_tidy) <- c("Well", "Cluster")
+clustered_data_tidy$Well <- as.character(clustered_data_tidy$Well)
+
+#Creating new data frame with og data + clusters
+joined_clusters <- jd_wells %>% 
+  inner_join(clustered_data_tidy, by = "Well")
+
+table(joined_clusters$Cluster)
+
+#plotting cluster 3
+cluster_3 <- joined_clusters %>% 
+  filter(Cluster == 3)
+
+ggplot(cluster_3,
+       aes(x = date,
+           y = water_depth,
+           color = Well)) + 
+  geom_line(color = "red", size = 1) +
+  scale_y_continuous(trans = "reverse") +
+  theme_minimal() +
+  labs(title = "Cluster 3") +
+  facet_wrap(~Well) 
+
+#plotting cluster 2
+cluster_2 <- joined_clusters %>% 
+  filter(Cluster == 2)
+
+ggplot(cluster_2,
+       aes(x = date,
+           y = water_depth,
+           color = Well)) + 
+  geom_line(color = "red", size = 1) +
+  scale_y_continuous(trans = "reverse") +
+  theme_minimal() +
+  labs(title = "Cluster 3") +
+  facet_wrap(~Well) 
+
+#plotting cluster 4
+cluster_4 <- joined_clusters %>% 
+  filter(Cluster == 4)
+
+ggplot(cluster_4,
+       aes(x = date,
+           y = water_depth,
+           color = Well)) + 
+  geom_line(color = "red", size = 1) +
+  scale_y_continuous(trans = "reverse") +
+  theme_minimal() +
+  labs(title = "Cluster 3") +
+  facet_wrap(~Well) 
+
+#plotting all clusters
+ggplot(joined_clusters,
+       aes(x = date,
+           y = water_depth,
+           color = Cluster)) +
+  geom_point() +
+  scale_color_gradient(low = "yellow", high = "red")
