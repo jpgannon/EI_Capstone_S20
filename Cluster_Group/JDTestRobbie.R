@@ -3,8 +3,6 @@
 #to test tsclust function
 
 library(tidyverse)
-library(dplyr)
-library(lubridate)
 library(dtwclust)
 
 setwd("C:/Capstone/Data")
