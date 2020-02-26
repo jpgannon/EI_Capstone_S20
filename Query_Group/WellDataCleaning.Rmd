@@ -52,6 +52,12 @@ finalWellData <- wellDataJoined %>% mutate(level = level - PipeHt)
 
 #make date a datetime type
 finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = as.Date(date))
-finalWellData
+
+
+#write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanWellData2.csv")
+
+sept2011WellData <- finalWellData %>% filter(date > "2011-08-31" && date < "2011-10-01")
+
+write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
 
 ```
