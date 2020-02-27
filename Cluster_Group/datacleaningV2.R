@@ -1,20 +1,14 @@
 
 
-#this is a test test test 
-
 #this is script creates a master dataframe containing the cleaned data from 
 #all wells in watershed 3
 
 #add tidyverse library and set working directory
 library(tidyverse)
-library(purrr)
-library(tidyr)
-library(dplyr)
-library(tidyverse)
 library(lubridate)
 #library(zoo)
 #library(timeSeries)
-setwd("C:/Capstone/Data/WS3_waterlevel_data")
+#setwd("C:/Capstone/Data/WS3_waterlevel_data")
 
 #############################################################
 #This part of the script creates a list of tibbles containing 
@@ -25,23 +19,24 @@ setwd("C:/Capstone/Data/WS3_waterlevel_data")
 ##################import well data and well metadata###################3
 
 #create list of well .csv files 
-well_list <- list.files() 
+#well_list <- list.files() 
 
 #read in well data into a list of tibbles
-well_files <- lapply(well_list, read_csv)
+#well_files <- lapply(well_list, read_csv)
 
 #read in well metadata in welldata.txt (located outside of master data folder)
-well_locations <- read_csv("C:/Capstone/Data/w3well_locations.txt")
+#well_locations <- read_csv("C:/Capstone/Data/w3well_locations.txt")
 
 #create list of wells based on well metadata file
-well_names <- c()
-for (x in 1:nrow(well_locations)){
-  well_names[x] <- well_locations$Well[x]
-}
+#well_names <- c()
+#for (x in 1:nrow(well_locations)){
+#  well_names[x] <- well_locations$Well[x]
+#}
 
 #name each tibble in the list appropriately
 #each wells data can now be pulled by calling well_files[["well name"]]
-names(well_files) <- well_names
+#names(well_files) <- well_names
+
 
 
 
@@ -49,30 +44,30 @@ names(well_files) <- well_names
 
 #establish empty values for the overall start date and end date
 #initial value is start date and end dates from first well in folder
-start_date <- min(well_files[[well_names[1]]]$date.)
-end_date <- max(well_files[[well_names[1]]]$date.)
+#start_date <- min(well_files[[well_names[1]]]$date.)
+#end_date <- max(well_files[[well_names[1]]]$date.)
 
-for (x in well_names){
+#for (x in well_names){
   #change readings of -99 to NA
-  well_files[[x]]$level[well_files[[x]]$level == -99] <- NA
+#  well_files[[x]]$level[well_files[[x]]$level == -99] <- NA
   
   #change readings greater than 168 to NA
-  well_files[[x]]$level[well_files[[x]]$level >= 168] <- NA
+#  well_files[[x]]$level[well_files[[x]]$level >= 168] <- NA
   
   #subtract pipe height based on well metadata
-  PH <- well_locations$PipeHt[well_locations$Well == x]
-  well_files[[x]]$level <- well_files[[x]]$level - PH
+#  PH <- well_locations$PipeHt[well_locations$Well == x]
+#  well_files[[x]]$level <- well_files[[x]]$level - PH
   
   #compares the earliest and latest dates to the earliest and latest thus far in the list of tibbles
   #this is to determine the earliest and latest dates in the dataset
-  if (min(well_files[[x]]$date. <= start_date)){
-    start_date <- min(well_files[[x]]$date.)
-  }
-  if (max(well_files[[x]]$date. >= end_date)){
-    end_date <- max(well_files[[x]]$date.)
-  }
+#  if (min(well_files[[x]]$date. <= start_date)){
+#    start_date <- min(well_files[[x]]$date.)
+#  }
+#  if (max(well_files[[x]]$date. >= end_date)){
+#    end_date <- max(well_files[[x]]$date.)
+#  }
   
-}
+#}
 
 
 ################################################################
@@ -110,6 +105,37 @@ welldata$wtdepth <- welldata$level - welldata$PipeHt
 welldata <- select(welldata, date., level, Well, PipeHt, wtdepth)
 
 #create csv file with the new data frame (makes app simpler by taking away need to do data wrangling in app)
-write.csv(welldata, "allwelldata.csv")
+#(welldata, "C:/Capstone/Data/allwelldata.csv")
 
 
+###quick plot
+#welldata %>% filter(Well == "O2") %>%
+#  ggplot(aes(date., wtdepth))+
+#  geom_line()
+
+
+
+#####create Hourly summary########
+welldata$date. <- ymd_hms(welldata$date.)
+
+welldata %>% group_by(Well, year(date.), month(date.), day(date.), hour(date.)) %>%
+  summarize(median(level, na.rm = TRUE), median(wtdepth, na.rm = TRUE)) -> hourly
+
+colnames(hourly) <- c("Well", "year","month","day", "hour", "level","wtdepth")  
+
+hourly$date. <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
+
+hourly <- hourly %>% ungroup() %>%
+  select(Well, date., level, wtdepth) 
+
+
+########create six hour summary##########
+hourly$bySixHours <- cut(hourly$date., breaks = "6 hours")
+
+sixHourSummary <- hourly %>% 
+  group_by(Well, bySixHours) %>% 
+  summarise(median(level, na.rm = TRUE), median(wtdepth, na.rm = TRUE))
+
+colnames(sixHourSummary) = c("Well", "Time", "Level", "WtDepth")
+
+write_csv(sixHourSummary, "C:/Capstone/Data/sixHourSummary.csv")
