@@ -1,5 +1,5 @@
 ---
-title: "Sample Layout"
+title: "Sample Layout (Query)"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -54,7 +54,7 @@ conditionalPanel(condition = "input.range == 'Date Range'",
 Column
 -----------------------------------------------------------------------
 
-### Plot Title
+### Water Level Plot
 
 ```{r}
 ranges <- reactiveValues(x = as.Date(c(start = "2010-07-01", end = "2018-01-01")))
@@ -72,8 +72,9 @@ renderPlot({
       xmin <- input$plot_brush$xmin
       xmax <- input$plot_brush$xmax
       
+      selected_well_data <- filter(well_data, Well == input$select)
       
-      ggplot(data = well_data, mapping = aes(x = date, y = level))+
+      ggplot(data = selected_well_data, mapping = aes(x = date, y = level, color = Well))+
         geom_line()+
         scale_y_reverse()+
         ylab("Water Table Depth (cm)")+
