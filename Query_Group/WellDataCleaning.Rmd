@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
+library(lubridate)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
@@ -54,7 +55,7 @@ wellDataJoined$level <-  na_if(wellDataJoined$level, -99)
 finalWellData <- wellDataJoined %>% mutate(level = level - PipeHt)
 
 #make date a datetime type
-finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = as.Date(date))
+finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = ymd_hms(date))
 
 
 #write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanWellData2.csv")
@@ -70,7 +71,51 @@ allPrecipData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/caps
 
 rainData2010_2019 <- allPrecipData %>% filter(DATE > '2010-07-13')
 
-write_csv(rainData2010_2019, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/precipData.csv")
+#write_csv(rainData2010_2019, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/precipData.csv")
 
+```
+The code below reads in snow depth data and filters it:
+```{r}
+#read in snow data
+allSnowDepthData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/HBEF_snowdepth1956-2018.csv")
+
+#filter snow data to fit the well data dates
+dateSnowData <- allSnowDepthData %>% mutate(Date = as.Date(Date)) %>% filter(Date > '2010-01-01')
+
+#read filtered data to csv
+#write_csv(dateSnowData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/snowDepthData.csv")
+
+```
+
+
+The code below reads in water chemistry data:
+```{r}
+#read in the water chemistry data
+allWaterChemData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/W3_surface_water_chemistry.csv")
+
+#filters water chemistry data
+waterChemData <- allWaterChemData %>% mutate(Date = as.Date(Date))
+
+#writes filtered data to csv
+#write_csv(waterChemData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/waterChemData.csv")
+```
+
+
+The code below reads in temperature data:
+```{r}
+#read in temperature data from csv
+allTempData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/tdm_all_temp_mean.txt")
+
+#filter temperature data
+tempData <- allTempData %>% mutate(DATE = as.Date(DATE)) %>% filter(DATE > '2010-01-01')
+
+#write filtered data to csv
+#write_csv(tempData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/tempData.csv")
+```
+
+
+The code below reads in slope and aspect and elevation data:
+```{r}
+allSlopeAspData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/valley_plots_aspect_slope.csv")
 ```
 
