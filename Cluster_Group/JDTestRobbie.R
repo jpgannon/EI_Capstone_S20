@@ -11,7 +11,7 @@ sixHourSummary <- read_csv("sixHourSummary.csv")
 
 #For the sake of this test, I will use data from wells 
 #in the JD family, excluding JD03, JD08, JD09, and JD31 for lack of data in the test range
-#Based on sixHourSummary  data from datacleaningV2 File
+#Based on sixHourSummary data from datacleaningV2 File
 
 start_date <- "2008-01-01"
 end_date <- "2008-04-15"
