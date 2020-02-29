@@ -119,11 +119,22 @@ server <- function(input, output) {
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%  
-      addMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y, 
+      addCircles(lng = well_locations$POINT_X, lat = well_locations$POINT_Y, 
+                 weight = 1,
                  popup = paste("Well ID:", well_labels$Well,"<br>", 
                                "Pipe Height:", well_labels$PipeHt, "<br>",
                                "X Coordinate:", well_labels$POINT_X, "<br>",
-                               "Y Coordinate:", well_labels$POINT_Y))
+                               "Y Coordinate:", well_labels$POINT_Y)) %>%
+      # focus map in on Hubbard Brooke's Watershed 3 / zoom level
+      setView(lng = -71.7210, lat = 43.9582, zoom = 15.5) %>%
+      
+      # add layers control 
+      addLayersControl(overlayGroups = c('Hillshade',
+                                         'Slope',
+                                         'TWI',
+                                         'NDVI'),
+                       options = layersControlOptions(collapsed = FALSE),
+                       position = 'topright')
   })
   
   
