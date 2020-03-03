@@ -63,8 +63,6 @@ plot(dtw_members)
 plot(basic_members)
 plot(euclidean_members)
 
-
-
 compare_clusterings(series = wellsList,
                     types = c("p", "h", "f"),
                     configs = compare_clusterings_configs(types),
@@ -72,17 +70,14 @@ compare_clusterings(series = wellsList,
                     score.clus = clus_score,
                     pick.clus = clus_pick
                     )
-?cvi
-cvi(a = results2,
-    type = "internal")
 
-#use eclust() to determine number of clusters
-#
+?cvi
 cvi(a = dtw_results,
     type = "internal")
 cvi(a = dtw_basic_results,
     type = "internal")
 
+#compare hierarchical clustering results
 plot(dtw_results, main = "DTW") 
 plot(dtw_basic_results, main = "DTW_BASIC")
 plot(euclidean_results, main = "EUCLIDEAN")
