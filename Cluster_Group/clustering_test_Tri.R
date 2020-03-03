@@ -38,15 +38,19 @@ dtw_results <- tsclust(wellsList, type = "hierarchical", 5, distance = "dtw")
 #dtw_basic is  much faster but might not be as "accurate" - seems to produce same results as dtw
 dtw_basic_results <- tsclust(wellsList, type = "hierarchical", 5, distance = "dtw_basic")
 
+#dtw2 distance which uses L2 norm which is Euclidean. dtw uses L1 which is Manhattan
+dtw2_results <- tsclust(wellsList, type = "hierarchical", 5, distance = "dtw2")
+
 #euclidean distance
 euclidean_results <- tsclust(wellsList, type = "hierarchical", k = 5, distance = "euclidean")
 
 ?compare_clusterings
 
 #saving and loading tscluster objects
-save(dtw_results, file = "D:/Capstone/data/figs/clustering_results/dtw_results")
-load("D:/Capstone/data/figs/clustering_results/dtw_results")
-save(dtw_basic_results, file = "D:/Capstone/data/figs/clustering_results/dtw_basic_results")
+# save(dtw_results, file = "D:/Capstone/data/clustering_results/dtw_results")
+# load("D:/Capstone/data/clustering_results/dtw_results")
+# save(dtw_basic_results, file = "D:/Capstone/data/clustering_results/dtw_basic_results")
+# save(dtw2_results, file = "D:/Capstone/data/clustering_results/dtw2_results")
 
 #plot cluster results
 plot(results)
@@ -80,4 +84,5 @@ cvi(a = dtw_basic_results,
 #compare hierarchical clustering results
 plot(dtw_results, main = "DTW") 
 plot(dtw_basic_results, main = "DTW_BASIC")
+plot(dtw2_results, main = "DTW2")
 plot(euclidean_results, main = "EUCLIDEAN")
