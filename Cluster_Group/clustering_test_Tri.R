@@ -1,6 +1,7 @@
 library(tidyverse)
 library(dtwclust)
 library(fpc)
+library(NbClust)
 
 setwd("D:/Capstone/Data")
 
@@ -41,6 +42,7 @@ dtw_basic_results <- tsclust(wellsList, type = "hierarchical", 5, distance = "dt
 euclidean_results <- tsclust(wellsList, type = "hierarchical", k = 5, distance = "euclidean")
 
 ?compare_clusterings
+
 #saving and loading tscluster objects
 save(dtw_results, file = "D:/Capstone/data/figs/clustering_results/dtw_results")
 load("D:/Capstone/data/figs/clustering_results/dtw_results")
@@ -50,8 +52,18 @@ save(dtw_basic_results, file = "D:/Capstone/data/figs/clustering_results/dtw_bas
 plot(results)
 plot(results2, type = "series")
 plot(results, type = "centroid", clus = 1)
+
 #create df of cluster results
-members <- data.frame(target, results@cluster)
+dtw_members <- data.frame(target, dtw_results@cluster)
+basic_members <- data.frame(target, dtw_basic_results@cluster)
+euclidean_members <- data.frame(target, euclidean_results@cluster)
+
+#looking at spread of cluster groups for dtw and dtw_basic - seems the same
+plot(dtw_members)
+plot(basic_members)
+plot(euclidean_members)
+
+
 
 compare_clusterings(series = wellsList,
                     types = c("p", "h", "f"),
