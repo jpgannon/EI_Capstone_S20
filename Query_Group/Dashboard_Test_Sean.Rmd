@@ -65,33 +65,24 @@ Column
 ### Water Level Plot
 
 ```{r}
-
+# renders the plot
 renderPlot({
+  start_d <- input$date_range[1]
+  end_d <- input$date_range[2]
+  xmin <- input$plot_brush$xmin
+  xmax <- input$plot_brush$xmax
       
+  selected_well_data <- filter(well_data, Well == input$select)
       
-      start_d <- input$date_range[1]
-      end_d <- input$date_range[2]
-      xmin <- input$plot_brush$xmin
-      xmax <- input$plot_brush$xmax
-      
-      selected_well_data <- filter(well_data, Well == input$select)
-      
-      ggplot(data = selected_well_data, 
-             mapping = aes(x = date, y = level, 
-                           color = Well)) +
-        geom_line() +
-        scale_y_reverse() +
-        ylab("Water Table Depth (cm)") +
-        xlab("Date") + 
-          # makes the auto zoom work, but manual input date doesnt work
-        #coord_cartesian(xlim = as.Date(ranges$x, origin = "1970-01-01"), expand = FALSE) + 
-          # makes the manual input date work, but the auto zoom doesnt work (also single date doesnt work)
-        coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
+  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
+                           color = Well)) + geom_line() +
+    scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
+    coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
                                  as.POSIXct(input$date_range[2]))) +
-        theme_classic()
-    })
+    theme_classic()
+})
 
-# for brush date range
+# For brushing feature
  ranges <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
                                            end = "2018-01-01")))
  maxrange <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
