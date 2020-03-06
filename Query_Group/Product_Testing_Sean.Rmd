@@ -1,0 +1,78 @@
+---
+title: "Watershed Data Exploration Tool"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+  
+```{r global, include=FALSE}
+# load necessary packages and data sets
+library(shiny)
+library(devtools)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(plotly)
+
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
+                 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
+                 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14',
+                 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21',
+                 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28',
+                 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 
+                 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 
+                 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
+                 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
+
+well_data <- read_csv("sept2011Data.csv")
+```
+
+Column {.sidebar}
+---------------------------------------------------------------------
+  
+Explore data from watershed 3 in Hubbard Brook.
+  
+```{r}
+# Select multiple wells based on well names
+selectInput("select", "Select Well(s):", 
+            choices = wellNames, multiple = TRUE)
+
+#if user chose date range, show a date range input box
+dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
+               end = "2018-01-10", format = "mm/dd/yy")
+
+# plots/refreshes data
+actionButton("plot", label = "Plot")
+```
+
+Column
+---------------------------------------------------------------------
+  
+### Water Level Plot
+
+```{r}
+# Renders the plot
+renderPlot({
+  
+  # grabs the new date range input
+  x_limits <- eventReactive(input$plot, {
+    c(as.POSIXct(input$date_range[1]), 
+      as.POSIXct(input$date_range[2]))})
+  
+  # grabs the new well input
+  wells <- eventReactive(input$plot, {input$select})
+  
+  # creates a filtered dataset    
+  selected_well_data <- filter(well_data, Well == wells())
+      
+  # plots the water level
+  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
+                           color = Well)) + geom_line() +
+    scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
+    coord_cartesian(xlim = x_limits()) +
+    theme_classic()
+})
+```
