@@ -5,6 +5,8 @@ library(tidyverse)
 library(lubridate)
 library(patchwork)
 library(leaflet)
+library(sf)
+library(shinyWidgets)
 
 
 # Define UI for application that plots wells for a specific time period
@@ -21,7 +23,7 @@ ui <- fluidPage(
       dateRangeInput("date", "Select date range:", start = "2010-08-10", end = "2018-10-08",
                      separator = "to", startview = "year"),
       #Text input for wells
-      textInput("wells", "Enter well names with spaces in between",
+      textInput("well_input", "Enter well names with spaces in between",
                 value = "K9")
       
       
@@ -31,10 +33,9 @@ ui <- fluidPage(
       
       #Plots water table data and precipitation and map
       leafletOutput("map"),
-      plotOutput("wellplot"),
-      plotOutput("precplot")
+      plotOutput("precplot"),
+      plotOutput("wellplot")
     )
-    
   )
 )
 
@@ -43,12 +44,12 @@ ui <- fluidPage(
 
 
 #define server logic to draw line plot
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
   
   #Read in data
-  welldata <- read_csv("well_data.csv") #filter(Well == "A5")
+  welldata <- read_csv("welldatahourly.csv") #filter(Well == "A5")
   precip <- read_csv("dailyWatershedPrecip1956-2019.csv")
   
   
@@ -61,7 +62,7 @@ server <- function(input, output) {
   
   #Creates water table plot
   output$wellplot <- renderPlot({
-    ID <- strsplit(input$wells, " ")[[1]]
+    ID <- strsplit(input$well_input, " ")[[1]]
     
     start <- input$date[1]
     
@@ -119,12 +120,14 @@ server <- function(input, output) {
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%  
-      addCircles(lng = well_locations$POINT_X, lat = well_locations$POINT_Y, 
+      addCircleMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y, 
                  weight = 1,
                  popup = paste("Well ID:", well_labels$Well,"<br>", 
                                "Pipe Height:", well_labels$PipeHt, "<br>",
                                "X Coordinate:", well_labels$POINT_X, "<br>",
-                               "Y Coordinate:", well_labels$POINT_Y)) %>%
+                               "Y Coordinate:", well_labels$POINT_Y),
+                 layerId = well_locations$Well,
+                 radius = 4) %>%
       # focus map in on Hubbard Brooke's Watershed 3 / zoom level
       setView(lng = -71.7210, lat = 43.9582, zoom = 15.5) %>%
       
@@ -133,10 +136,18 @@ server <- function(input, output) {
                                          'Slope',
                                          'TWI',
                                          'NDVI'),
-                       options = layersControlOptions(collapsed = FALSE),
+                       options = layersControlOptions(collapsed = TRUE),
                        position = 'topright')
   })
   
+   #Selecting map markers
+  observeEvent(input$map_marker_click, { 
+    site <- input$map_marker_click
+    site_id <- site$id
+    #print(site_id)
+    updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
+  })
+   
   
 }
 
