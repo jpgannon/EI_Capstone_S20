@@ -65,36 +65,18 @@ sept2011WellData <- finalWellData %>% filter(date > "2011-08-31" & date < "2011-
 write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
 
 ```
-The code below reads in precipitation info and filters it to match the dates our well data is from.
-```{r}
-allPrecipData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/dailyGagePrecip1956-2019.csv")
-
-rainData2010_2019 <- allPrecipData %>% filter(DATE > '2010-07-13')
-
-#write_csv(rainData2010_2019, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/precipData.csv")
-
-```
-The code below reads in snow depth data and filters it:
-```{r}
-#read in snow data
-allSnowDepthData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/HBEF_snowdepth1956-2018.csv")
-
-#filter snow data to fit the well data dates
-dateSnowData <- allSnowDepthData %>% mutate(Date = as.Date(Date)) %>% filter(Date > '2010-01-01')
-
-#read filtered data to csv
-#write_csv(dateSnowData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/snowDepthData.csv")
-
-```
 
 
 The code below reads in water chemistry data from weir and the water amount at the weir:
 ```{r}
 #read in the water chemistry data
-allWaterChemData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/W3_surface_water_chemistry.csv")
+allWaterChemData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/waterChem.csv")
 
 #filters water chemistry data
-waterChemData <- allWaterChemData %>% mutate(Date = ymd(Date))
+waterChemData <- allWaterChemData %>% mutate(Date = as.Date(Date, "%m/%d/%Y")) %>% mutate(Date = as.POSIXct(Date))
+
+anAttempt <- waterChemData %>% group_by(Site)
+anAttempt <- anAttempt[-c(0:9),]
 
 #writes filtered data to csv
 #write_csv(waterChemData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/waterChemData.csv")
@@ -113,25 +95,10 @@ write_csv(allWeirData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capston
 ```
 
 
-The code below reads in temperature data:
-```{r}
-#read in temperature data from csv
-allTempData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/tdm_all_temp_mean.txt")
-
-#filter temperature data
-tempData <- allTempData %>% mutate(DATE = as.Date(DATE)) %>% filter(DATE > '2010-01-01')
-
-#write filtered data to csv
-#write_csv(tempData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/tempData.csv")
-```
-
-
-The code below reads in slope and aspect and elevation data:
+The code below reads in slope and aspect and elevation data: Erica- you need to download this data from the map group, this csv is wrong
 ```{r}
 #read in csv file
 allSlopeAspData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/valley_plots_aspect_slope.csv")
 
-#filter out unnecessary columns and plots
-slopeAspElevData <- allSlopeAspData %>% mutate(date = mdy(SAMPLE_DATE)) %>% select(-c(SAMPLE_DATE, DATE_NOTE))
 ```
 
