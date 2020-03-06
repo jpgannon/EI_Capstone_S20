@@ -74,9 +74,10 @@ renderPlot({
   xmin <- input$plot_brush$xmin
   xmax <- input$plot_brush$xmax
   
-  x_limits <- eventReactive(input$plot, {
-    c(as.POSIXct(input$date_range[1]), 
-      as.POSIXct(input$date_range[2]))})
+  #x_limits <- eventReactive(input$plot, {
+    #(as.POSIXct(input$date_range[1]), 
+      #as.POSIXct(input$date_range[2]))})
+  
   
   wells <- eventReactive(input$plot, {input$select})
   
@@ -86,7 +87,8 @@ renderPlot({
   ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
                            color = Well)) + geom_line() +
     scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
-    coord_cartesian(xlim = xlimits()) +
+    coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
+      as.POSIXct(input$date_range[2]))) +
     theme_classic()
 })
 
