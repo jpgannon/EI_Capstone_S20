@@ -32,7 +32,7 @@ welldata$Well <- str_replace(welldata$filename, ".csv", "")
 welldata <- welldata %>%
   rename(date = date.)
 
-
+head(welldata)
 
 #Join W3Well_locations.txt file to the data frame and Keep each row of data assigned to the proper well (i.e. all rows that belong to well A5 will have A5 #in the "Well" column)
 welldata <- left_join(welldata, info, by = "Well")
@@ -51,23 +51,30 @@ welldata$wtdepth <- welldata$level - welldata$PipeHt
 welldata <- select(welldata, Well, date, wtdepth, level, PipeHt, X, Y)
 
 
+welldata$date <- ymd_hms(welldata$date)
+
+#Change data to hourly instead of 10-minutely
+welldata %>% group_by(Well, year(date), month(date), day(date), hour(date)) %>%
+  summarize(median(level), median(wtdepth)) -> hourly
+
+colnames(hourly) <- c("Well", "year","month","day", "hour", "level","wtdepth")  
+
+hourly$date <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
+
+hourly <- hourly %>% ungroup() %>%
+  select(Well, date, level, wtdepth) 
+
+#welldatahourly <- aggregate(welldata$level,
+#list(hour = cut(welldata$date, breaks="hour")),
+#mean, na.rm = TRUE)
+
+head(hourly)
+tail(hourly)
 #creates new csv file with the dataframe
-write_csv(welldata, "well_data.csv", append = FALSE, col_names = TRUE)
-
-well_data <- read_csv("well_data.csv")
+write_csv(hourly, "welldatahourly.csv")
 
 
 
-
-#Precipitation data
-
-#reads in daily precipitation by watershed data
-precip <- read_csv("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/dailyWatershedPrecip1956-2019.csv")
-
-head(precip)
-
-#filter for only watershed 3
-precip <- precip %>%
-  filter(precip$watershed == 3)
-
+well_data_hrly <- read_csv("welldatahourly.csv")
+head(well_data_hrly)
 
