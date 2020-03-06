@@ -1,6 +1,7 @@
 library(shiny)
 library(tidyverse)
 well_names <- read_csv("C:/Users/user/Desktop/Spring 2019/FREC4444/EI_Capstone_S20/Cluster_Group/Data/w3well_locations.txt")
+well_matches <- read_csv("C:/Users/user/Desktop/Spring 2019/FREC4444/Data/well_matches.csv")
 
 
 # Define UI
@@ -17,11 +18,11 @@ ui <- fluidPage(
       
     fluidRow(
       column(4, offset = 2,
-             selectInput('Well 1', label = h3("Select Well 1:"), choices = well_names$Well)
+             selectInput('Well1', label = h3("Select Well 1:"), choices = unique(well_matches$`Well 1`))
 
       ),
       column(4,
-             selectInput('Well 2', label = h3("Select Well 2:"), choices = well_names$Well),
+             selectInput('Well2', label = h3("Select Well 2:"), choices = NULL),
              checkboxInput('reccomendation', 'Check here to view only reccomendations for Well 2')
       ),
       column(12, offset = 2,
@@ -32,8 +33,7 @@ ui <- fluidPage(
              ),
              h3("Plot of Well Data"),
              plotOutput("plot1", click = "plot_click"),
-             actionButton(inputId = 'export', label = "Export Data")
-             
+             downloadButton("downloadData", "Download")
 
       )
     )
@@ -41,7 +41,13 @@ ui <- fluidPage(
 )
 
 # Define server logic required to draw plot of well data
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  observeEvent(input$Well1, {
+    updateSelectInput(session, 'Well2', 
+                      choices = unique(well_matches$`Well 2`[well_matches$`Well 1`==input$Well1]))
+  })
+  
   
 # filler plot for now
   output$plot1 <- renderPlot({
@@ -54,6 +60,15 @@ server <- function(input, output) {
          main = "Values")
     
   })
+  
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("well_names-", ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(well_names, file, row.names = FALSE)
+    }
+  )
   
 }
 

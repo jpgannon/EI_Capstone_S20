@@ -10,19 +10,22 @@ runtime: shiny
 
 ```{r global, include=FALSE}
 # load necessary packages and data sets
-  library(shiny)
-  library(devtools)
-  library(tidyverse)
-  library(lubridate)
+library(shiny)
+library(devtools)
+library(tidyverse)
+library(lubridate)
 
-  wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9', 'JD01', 'JD02', 'JD03', 
-                 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15',
-                 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25', 'JD26',
-                 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 'K1D', 'K4D', 'K4M',
-                 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1',
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
+                 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
+                 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14',
+                 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21',
+                 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28',
+                 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 
+                 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 
+                 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
-  
-  well_data <- read_csv("sept2011Data.csv")
+
+well_data <- read_csv("sept2011Data.csv")
 ```
 
 Column {.sidebar}
@@ -35,20 +38,22 @@ Hi please edit me. Make me the instructions!
 selectInput("select", label = h3("Select Well(s)"), 
             choices = wellNames, multiple = TRUE)
 
-# Date selection - Select whether user wants single date or range to choose from
-selectInput('range', "Single Date or Range", 
+# Select whether user wants single date or a range of dates
+selectInput("range", "Single Date or Range", 
             choices = c("Single Date", "Date Range"),
             selected = "Date Range")
-          
-#if user chose single date, show a single date input box
+
+# If user chose single date, show a single date input box
 conditionalPanel(condition = "input.range == 'Single Date'",
                  dateInput("date", "Date:", value = "2010-07-01", 
                            format = "mm/dd/yy"))
-            
-#if user chose date range, show a date range input box
+
+# If user chose date range, show a date range input box
 conditionalPanel(condition = "input.range == 'Date Range'",
-                 dateRangeInput("date_range", "Date Range:", start = min(well_data$date), 
-                                end = max(well_data$date), format = "mm/dd/yy"))
+                 dateRangeInput("date_range", "Date Range:", 
+                                start = "2010-07-01", 
+                                end = "2018-01-10", 
+                                format = "mm/dd/yy"))
 
 # plots/refreshes data
 actionButton("action", label = "Plot")
@@ -60,32 +65,28 @@ Column
 ### Water Level Plot
 
 ```{r}
-
+# renders the plot
 renderPlot({
+  start_d <- input$date_range[1]
+  end_d <- input$date_range[2]
+  xmin <- input$plot_brush$xmin
+  xmax <- input$plot_brush$xmax
       
+  selected_well_data <- filter(well_data, Well == input$select)
       
-      start_d <- input$date_range[1]
-      end_d <- input$date_range[2]
-      xmin <- input$plot_brush$xmin
-      xmax <- input$plot_brush$xmax
-      
-      selected_well_data <- filter(well_data, Well == input$select)
-      
-      ggplot(data = selected_well_data, mapping = aes(x = date, y = level, color = Well))+
-        geom_line()+
-        scale_y_reverse()+
-        ylab("Water Table Depth (cm)")+
-        xlab("Date") + 
-          # makes the auto zoom work, but manual input date doesnt work
-        #coord_cartesian(xlim = as.Date(ranges$x, origin = "1970-01-01"), expand = FALSE) + 
-          # makes the manual input date work, but the auto zoom doesnt work (also single date doesnt work)
-        coord_cartesian(xlim = c(as.Date(input$date_range[1]), as.Date(input$date_range[2])))+
-        theme_classic()
-    })
+  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
+                           color = Well)) + geom_line() +
+    scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
+    coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
+                                 as.POSIXct(input$date_range[2]))) +
+    theme_classic()
+})
 
-# for brush date range
- ranges <- reactiveValues(x = as.Date(c(start = "2010-07-01", end = "2018-01-01")))
- maxrange <- reactiveValues(x = as.Date(c(start = "2010-07-01", end = "2018-01-01")))
+# For brushing feature
+ ranges <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
+                                           end = "2018-01-01")))
+ maxrange <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
+                                             end = "2018-01-01")))
  observeEvent(input$plot1_dblclick,
                  {
                    brush <- input$plot1_brush
@@ -94,7 +95,8 @@ renderPlot({
                      ranges$x <- c(brush$xmin, brush$xmax)
                      
                    } else {
-                     ranges$x <- c(min(well_data$date), max(well_data$date))
+                     ranges$x <- c(min(well_data$date), 
+                                   max(well_data$date))
                    }
                  })
 ```

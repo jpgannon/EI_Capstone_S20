@@ -1,4 +1,4 @@
-#setwd("C:/Users/lizaw/Desktop/Capstone/")
+setwd("C:/Users/lizaw/Desktop/Capstone/")
 
 library(shiny)
 library(tidyverse)
@@ -22,9 +22,11 @@ ui <- fluidPage(
                      separator = "to", startview = "year"),
       #Text input for wells
       textInput("wells", "Enter well names with spaces in between",
-                value = "K9")
+                value = "K9"),
       
-      
+      # Button
+      downloadButton("downloadData", "Download") 
+      # code adapted from https://shiny.rstudio.com/articles/download.html
       
     ),
     mainPanel(
@@ -133,15 +135,28 @@ server <- function(input, output) {
                                          'Slope',
                                          'TWI',
                                          'NDVI'),
-                       options = layersControlOptions(collapsed = FALSE),
+                       options = layersControlOptions(collapsed = TRUE),
                        position = 'topright')
   })
   
+  output$table <- renderTable({
+    datasetInput()
+  })
+  
+  # Downloadable csv of selected dataset ----
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste(input$dataset, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(datasetInput(), file, row.names = FALSE)
+      # code adapted from https://shiny.rstudio.com/articles/download.html
+      }
+  )
   
 }
 
+  
 
 app <- shinyApp(ui, server)
 runApp(app)
-
-
