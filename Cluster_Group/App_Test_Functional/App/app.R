@@ -1,3 +1,4 @@
+library(DT)
 library(shiny)
 library(tidyverse)
 library(lubridate)
@@ -6,7 +7,7 @@ Master_List <- read_csv("C:/Users/Lauren/Documents/Capstone/Test_Data/Master_Lis
 
 Well_Names <- as.list(unique(Master_List$Well_1)) #All Well Names
 
-source("C:/Users/Lauren/Documents/Capstone/R_Files/global.R")
+#source("C:/Users/Lauren/Documents/Capstone/R_Files/global.R")
 
 A1 <- read_csv("C:/Users/Lauren/Documents/Capstone/Test_Data/A1_Well.csv")
 B3 <- read_csv("C:/Users/Lauren/Documents/Capstone/Test_Data/B3_Well.csv")
@@ -16,7 +17,7 @@ C9 <- read_csv("C:/Users/Lauren/Documents/Capstone/Test_Data/C9_Well.csv")
 # Define UI for application
 
 ui <- fluidPage(
-
+    
     fluidPage(
         
         # Application title
@@ -32,8 +33,24 @@ ui <- fluidPage(
                             selected = 1),
                 uiOutput("Well_2_Req"),
                 uiOutput("date_req"),
-                actionButton("Initiate", "Go!",
-                             style = "background-color:#0077FF;
+                # actionButton("Initiate", "Go!",
+                #              style = "background-color:#0077FF;
+                #       color:#FFFFFF;
+                #       border-color:#D1D1D1;
+                #       border-style:none;
+                #       border-width:1px;
+                #       border-radius:5%;
+                #       font-size:18px;"),
+                downloadButton("downloadplot", "Download Plot!",
+                               style = "background-color:#0077FF;
+                      color:#FFFFFF;
+                      border-color:#D1D1D1;
+                      border-style:none;
+                      border-width:1px;
+                      border-radius:5%;
+                      font-size:18px;"),
+                downloadButton("downloaddata", "Download Data!",
+                               style = "background-color:#0077FF;
                       color:#FFFFFF;
                       border-color:#D1D1D1;
                       border-style:none;
@@ -44,7 +61,8 @@ ui <- fluidPage(
             
             # Show a plot of the generated distribution
             mainPanel(
-                plotOutput("Plot")
+                plotOutput("Plot"),
+                DT::dataTableOutput("mytable")
             )
         )
     )
@@ -100,35 +118,17 @@ server <- function(input, output) {
         
     })
     
-    getDateRange <- reactive({
-        input$go
-        isolate({
-            dateRange <- list(input$dates[1], input$dates[2])
-        })
-        return(dateRange)
-    })
-    
-    observe({
-        req(input$dates)
-        dateRange <- getDateRange()
-        print(dateRange)
-        start_date <- dateRange[1]
-        end_date <- dateRange[2]
-    })   
     
     output$Plot <- renderPlot({
-        
-        # start_date <- dateRange[1]
-        # end_date <- dateRange[2]
         
         Well_1_data <- Well_1_Input()
         Well_2_data <- Well_2_Input()
         
         Well_1_data <- Well_1_data %>%
             filter(date >= input$dates[1] & date <= input$dates[2])
-         
-         Well_2_data <- Well_2_data %>%
-             filter(date >= input$dates[1] & date <= input$dates[2])
+        
+        Well_2_data <- Well_2_data %>%
+            filter(date >= input$dates[1] & date <= input$dates[2])
         
         regression <- lm(Well_1_data$level ~ Well_2_data$level)
         
@@ -162,6 +162,8 @@ server <- function(input, output) {
             }
         }
         
+        head(Well_1_data)
+        
         ggplot() +
             geom_line(aes(Well_1_data$date, Well_1_data$predicted_values, color = is_predicted, group = 1), data = Well_1_data) +
             scale_y_reverse() +
@@ -169,6 +171,166 @@ server <- function(input, output) {
             xlab("Date") +
             theme_classic()
     })
+    
+    Dataset <- reactive({
+        Well_1_data <- Well_1_Input()
+        Well_2_data <- Well_2_Input()
+        
+        Well_1_data <- Well_1_data %>%
+            filter(date >= input$dates[1] & date <= input$dates[2])
+        
+        Well_2_data <- Well_2_data %>%
+            filter(date >= input$dates[1] & date <= input$dates[2])
+        
+        regression <- lm(Well_1_data$level ~ Well_2_data$level)
+        
+        #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
+        
+        slope <- regression$coefficients[2]
+        y_int <- regression$coefficients[1]
+        
+        
+        num_well1 <- nrow(Well_1_data)
+        
+        for (i in 1:num_well1) {
+            if (is.na(Well_1_data$level[i]) == TRUE) {
+                Well_1_data$predicted_values[i] = ((slope*Well_2_data$level[i]) + y_int)
+            } else {
+                Well_1_data$predicted_values[i] = Well_1_data$level[i]
+            }
+        }
+        
+        Well_1_data$predicted_values <- as.numeric(Well_1_data$predicted_values)
+        
+        
+        Well_1_data <- Well_1_data %>%
+            mutate(is_predicted = NA)
+        
+        for (i in 1:num_well1) {
+            if (is.na(Well_1_data$level[i]) == TRUE) {
+                Well_1_data$is_predicted[i] = TRUE
+            } else {
+                Well_1_data$is_predicted[i] = FALSE
+            }
+        }
+        return(Well_1_data)
+    })
+    
+    output$mytable = DT::renderDataTable({
+        Well_1_data <- Well_1_Input()
+        Well_2_data <- Well_2_Input()
+        
+        Well_1_data <- Well_1_data %>%
+            filter(date >= input$dates[1] & date <= input$dates[2])
+        
+        Well_2_data <- Well_2_data %>%
+            filter(date >= input$dates[1] & date <= input$dates[2])
+        
+        regression <- lm(Well_1_data$level ~ Well_2_data$level)
+        
+        #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
+        
+        slope <- regression$coefficients[2]
+        y_int <- regression$coefficients[1]
+        
+        
+        num_well1 <- nrow(Well_1_data)
+        
+        for (i in 1:num_well1) {
+            if (is.na(Well_1_data$level[i]) == TRUE) {
+                Well_1_data$predicted_values[i] = ((slope*Well_2_data$level[i]) + y_int)
+            } else {
+                Well_1_data$predicted_values[i] = Well_1_data$level[i]
+            }
+        }
+        
+        Well_1_data$predicted_values <- as.numeric(Well_1_data$predicted_values)
+        
+        
+        Well_1_data <- Well_1_data %>%
+            mutate(is_predicted = NA)
+        
+        for (i in 1:num_well1) {
+            if (is.na(Well_1_data$level[i]) == TRUE) {
+                Well_1_data$is_predicted[i] = TRUE
+            } else {
+                Well_1_data$is_predicted[i] = FALSE
+            }
+        }
+        
+        Well_1_data
+    })  
+    
+    #download button code will go
+    
+    output$downloadplot <- downloadHandler(
+        filename <- function() {
+            paste('plot', 'png', sep = ".")
+        },
+        content <- function(file) {
+            png(file)
+            
+            Well_1_data <- Well_1_Input()
+            Well_2_data <- Well_2_Input()
+            
+            Well_1_data <- Well_1_data %>%
+                filter(date >= input$dates[1] & date <= input$dates[2])
+            
+            Well_2_data <- Well_2_data %>%
+                filter(date >= input$dates[1] & date <= input$dates[2])
+            
+            regression <- lm(Well_1_data$level ~ Well_2_data$level)
+            
+            #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
+            
+            slope <- regression$coefficients[2]
+            y_int <- regression$coefficients[1]
+            
+            
+            num_well1 <- nrow(Well_1_data)
+            
+            for (i in 1:num_well1) {
+                if (is.na(Well_1_data$level[i]) == TRUE) {
+                    Well_1_data$predicted_values[i] = ((slope*Well_2_data$level[i]) + y_int)
+                } else {
+                    Well_1_data$predicted_values[i] = Well_1_data$level[i]
+                }
+            }
+            
+            Well_1_data$predicted_values <- as.numeric(Well_1_data$predicted_values)
+            
+            
+            Well_1_data <- Well_1_data %>%
+                mutate(is_predicted = NA)
+            
+            for (i in 1:num_well1) {
+                if (is.na(Well_1_data$level[i]) == TRUE) {
+                    Well_1_data$is_predicted[i] = TRUE
+                } else {
+                    Well_1_data$is_predicted[i] = FALSE
+                }
+            }
+            
+            plot <- ggplot() +
+                geom_line(aes(Well_1_data$date, Well_1_data$predicted_values, color = is_predicted, group = 1), data = Well_1_data) +
+                scale_y_reverse() +
+                ylab("Water Table Depth (cm)") +
+                xlab("Date") +
+                theme_classic() 
+            
+            print(plot)
+            
+            dev.off()
+        },
+        contentType = "image/png"
+    )
+    
+    
+    output$downloaddata <- downloadHandler(
+        filename = function() { "Well_1_Predicted_data.csv" }, content = function(file) {
+            write.csv(Dataset(), file, row.names = FALSE)
+        }
+    )
     
 }
 
