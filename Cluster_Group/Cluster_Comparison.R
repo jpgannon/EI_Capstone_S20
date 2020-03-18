@@ -176,55 +176,7 @@ confusionMatrix(as.factor(k_shape_result@cluster), as.factor(HPU$WellClass))
 
 #manually create confusion matrix to test results
 
-
-
-#error_matrix_generator <- function(algorithm) {
-
-  #generate cluster results based on either DTW or KSHAPE
-#  if (algorithm == "DTW"){
-#    result <- tsclust(series = wellsList,
-#                      type = "hierarchical",
-#                      k = nlevels(HPU$HPU),
-#                      distance = "dtw_basic")
-#  }
-#  
-#  if (algorithm == "KSHAPE"){
-#    result <- tsclust(series = wellsList,
-#                      type = "partitional",
-#                      k = nlevels(HPU$HPU),
-#                      distance = "sbd")
-#  }
-  
-#  result_df <- data.frame(Well = target,
-#                          Cluster = result@cluster)
-#  
-#  #create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
-#  #TRUE NEGATIVE, or FALSE NEGATIVE
-  
-#  well_matrix <- matrix(, nrow = length(target), ncol = length(target))
-#  colnames(well_matrix) <- target
-#  rownames(well_matrix) <- target
-  
-  #calculate outcomes and populate matrix
-#  for(well1 in target){
-#    for(well2 in target){
-#      if(result_df$Cluster[Well == well1] == result_df$Cluster[Well == well2]){
-#        if(HPU$WellClass[Well == well1] == HPU$WellClass[Well == well2]){
-#          well_matrix[well1, well2] <- "TP" 
-#          print("pass")
-#        }
-#      }
-#    }
-#  }
-  
-#  return(well_matrix)
-  
-#}
-
-
-
-
-
+#change this line to change what algorithm is being compared
 result <- tsclust(series = wellsList,
                   type = "partitional",
                   k = nlevels(HPU$HPU),
@@ -244,29 +196,35 @@ rownames(well_matrix) <- target
 #calculate outcomes and populate matrix
 for(well1 in target){
   for(well2 in target){
-    if(result_df$Cluster[result_df$Well == well1] == result_df$Cluster[result_df$Well == well2]){
-      if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
-        well_matrix[well1, well2] <- "TP" 
-      }
-      else{
-        well_matrix[well1, well2] <- "FP" 
-      }
-    }
-    else{
-      if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
-        well_matrix[well1, well2] <- "FN" 
-      }
-      else{
-        well_matrix[well1, well2] <- "TN" 
+    if(well1 != well2){ 
+      if(is.na(well_matrix[well2, well1])){
+        if(result_df$Cluster[result_df$Well == well1] == result_df$Cluster[result_df$Well == well2]){
+          if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+            well_matrix[well1, well2] <- "TP" 
+          }
+          else{
+            well_matrix[well1, well2] <- "FP" 
+          }
+        }
+        else{
+          if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+            well_matrix[well1, well2] <- "FN" 
+          }
+          else{
+            well_matrix[well1, well2] <- "TN" 
+          }
+        }
       }
     }
   }
 }
 
-TP <- sum(well_matrix == "TP")
-FP <- sum(well_matrix == "FP")
-FN <- sum(well_matrix == "FN")
-TN <- sum(well_matrix == "TN")
+
+
+TP <- sum(well_matrix == "TP", na.rm = TRUE)
+FP <- sum(well_matrix == "FP", na.rm = TRUE)
+FN <- sum(well_matrix == "FN", na.rm = TRUE)
+TN <- sum(well_matrix == "TN", na.rm = TRUE)
 
 contingency_table <- matrix(data = c(TP, FP, FN, TN), nrow = 2, ncol = 2)
 
