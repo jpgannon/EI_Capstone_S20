@@ -177,11 +177,13 @@ confusionMatrix(as.factor(k_shape_result@cluster), as.factor(HPU$WellClass))
 #manually create confusion matrix to test results
 
 #change this line to change what algorithm is being compared
+#can also use existing cluster results instead of running the clusters again
+
+
 result <- tsclust(series = wellsList,
                   type = "partitional",
-                  k = nlevels(HPU$HPU),
+                  k = 6,
                   distance = "sbd")
-
 
 result_df <- data.frame(Well = target,
                         Cluster = result@cluster)
@@ -232,6 +234,7 @@ rownames(contingency_table) <- c("Same Class", "Different Class")
 colnames(contingency_table) <- c("Same Cluster", "Different Cluster")
 
 rand_index <- (TP + TN)/(TP + TN + FP + FN)
+
 
 
 
