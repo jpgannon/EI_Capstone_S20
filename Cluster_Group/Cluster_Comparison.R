@@ -176,18 +176,104 @@ confusionMatrix(as.factor(k_shape_result@cluster), as.factor(HPU$WellClass))
 
 #manually create confusion matrix to test results
 
-#calculate number of true positives
-#determine for each combination of wells if they fall in the same predicted class as reference class
+
+
+#error_matrix_generator <- function(algorithm) {
+
+  #generate cluster results based on either DTW or KSHAPE
+#  if (algorithm == "DTW"){
+#    result <- tsclust(series = wellsList,
+#                      type = "hierarchical",
+#                      k = nlevels(HPU$HPU),
+#                      distance = "dtw_basic")
+#  }
+#  
+#  if (algorithm == "KSHAPE"){
+#    result <- tsclust(series = wellsList,
+#                      type = "partitional",
+#                      k = nlevels(HPU$HPU),
+#                      distance = "sbd")
+#  }
+  
+#  result_df <- data.frame(Well = target,
+#                          Cluster = result@cluster)
+#  
+#  #create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
+#  #TRUE NEGATIVE, or FALSE NEGATIVE
+  
+#  well_matrix <- matrix(, nrow = length(target), ncol = length(target))
+#  colnames(well_matrix) <- target
+#  rownames(well_matrix) <- target
+  
+  #calculate outcomes and populate matrix
+#  for(well1 in target){
+#    for(well2 in target){
+#      if(result_df$Cluster[Well == well1] == result_df$Cluster[Well == well2]){
+#        if(HPU$WellClass[Well == well1] == HPU$WellClass[Well == well2]){
+#          well_matrix[well1, well2] <- "TP" 
+#          print("pass")
+#        }
+#      }
+#    }
+#  }
+  
+#  return(well_matrix)
+  
+#}
 
 
 
 
 
+result <- tsclust(series = wellsList,
+                  type = "partitional",
+                  k = nlevels(HPU$HPU),
+                  distance = "sbd")
 
 
+result_df <- data.frame(Well = target,
+                        Cluster = result@cluster)
 
+#create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
+#TRUE NEGATIVE, or FALSE NEGATIVE
 
+well_matrix <- matrix(, nrow = length(target), ncol = length(target))
+colnames(well_matrix) <- target
+rownames(well_matrix) <- target
 
+#calculate outcomes and populate matrix
+for(well1 in target){
+  for(well2 in target){
+    if(result_df$Cluster[result_df$Well == well1] == result_df$Cluster[result_df$Well == well2]){
+      if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+        well_matrix[well1, well2] <- "TP" 
+      }
+      else{
+        well_matrix[well1, well2] <- "FP" 
+      }
+    }
+    else{
+      if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+        well_matrix[well1, well2] <- "FN" 
+      }
+      else{
+        well_matrix[well1, well2] <- "TN" 
+      }
+    }
+  }
+}
+
+TP <- sum(well_matrix == "TP")
+FP <- sum(well_matrix == "FP")
+FN <- sum(well_matrix == "FN")
+TN <- sum(well_matrix == "TN")
+
+contingency_table <- matrix(data = c(TP, FP, FN, TN), nrow = 2, ncol = 2)
+
+rownames(contingency_table) <- c("Same Class", "Different Class")
+colnames(contingency_table) <- c("Same Cluster", "Different Cluster")
+
+rand_index <- (TP + TN)/(TP + TN + FP + FN)
 
 
 
