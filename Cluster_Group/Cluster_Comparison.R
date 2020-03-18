@@ -3,6 +3,8 @@
 
 library(tidyverse)
 library(dtwclust)
+library(caret)
+
 
 setwd("C:/Capstone/Data")
 
@@ -97,9 +99,95 @@ for (x in 3:10){
 }
 
 
+#######compare cluster to clusters generated from soil clusters########
 
 
+#create clusters based on well HPU
   
+HPU <- read_csv("well_hpu.csv") %>% 
+  filter(Well %in% target) 
+#NOTE: K1S was changed to K1 in the original HPU csv, 
+#I believe this was an error in the HPU csv because 
+#I could not find a K1S well anywhere else, and K1 appeared to be missing from the HPU csv
+
+HPU$HPU <- as.factor(HPU$HPU)
+
+HPU$WellClass <- as.numeric(HPU$HPU)
+
+#6 clusters are created via this method
+#external clustering tests will be based on 6 clusters
+
+external_results <- data.frame(Algorithm = character(),
+                               NClusters = integer(),
+                               RI = double(),
+                               ARI = double(),
+                               J = double(),
+                               FM = double(),
+                               VI = double()
+                               )
+
+
+#Comparing K-shape with 6 clusters to soil HPUs
+
+k_shape_result <- tsclust(series = wellsList,
+                          type = "partitional",
+                          k = 6,
+                          distance = "sbd")
+
+CVI_results <- cvi(k_shape_result, HPU$WellClass, type = "external")
+
+Algorithm <- "K-shape"
+NClusters <- 6
+RI <- CVI_results["RI"]
+ARI <- CVI_results["ARI"]
+J <- CVI_results["J"]
+FM <- CVI_results["FM"]
+VI <- CVI_results["VI"]
+
+external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI, ARI, J, FM, VI))
+
+
+#Comparing DTW with 6 clusters to soil HPUs
+dtw_result <- tsclust(series = wellsList,
+                          type = "hierarchical",
+                          k = 6,
+                          distance = "dtw_basic")
+
+CVI_results <- cvi(dtw_result, HPU$WellClass, type = "external")
+
+Algorithm <- "DTW"
+NClusters <- 6
+RI <- CVI_results["RI"]
+ARI <- CVI_results["ARI"]
+J <- CVI_results["J"]
+FM <- CVI_results["FM"]
+VI <- CVI_results["VI"]
+
+external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI, ARI, J, FM, VI))
+
+#creating error matrix to compare k shape and DTW clusters to soil HPUs
+
+confusionMatrix(as.factor(k_shape_result@cluster), as.factor(HPU$WellClass))
+
+#problem with error matrix is that class names are assigned arbitrarily,
+#not sure if the accuracy assessments are taking this into account
+
+
+
+#manually create confusion matrix to test results
+
+#calculate number of true positives
+#determine for each combination of wells if they fall in the same predicted class as reference class
+
+
+
+
+
+
+
+
+
+
 
 
 
