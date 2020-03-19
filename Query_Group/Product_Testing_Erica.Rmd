@@ -1,0 +1,136 @@
+---
+title: "Sample Layout"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+  
+```{r global, include=FALSE}
+# load necessary packages and data sets
+library(shiny)
+library(devtools)
+library(tidyverse)
+library(lubridate)
+
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
+                 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
+                 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14',
+                 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21',
+                 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28',
+                 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 
+                 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 
+                 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
+                 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
+
+well_data <- read_csv("sept2011Data.csv")
+slope_aspect_well_data <- read_csv("slope_aspect_well_data.csv")
+```
+
+Column {.sidebar}
+---------------------------------------------------------------------
+  
+  Hi please edit me. Make me the instructions!
+  
+```{r}
+# Select multiple wells based on well names
+selectInput("select", label = h3("Select Well(s)"), 
+            choices = wellNames, multiple = TRUE)
+
+# Select whether user wants single date or a range of dates
+selectInput("range", "Single Date or Range", 
+            choices = c("Single Date", "Date Range"),
+            selected = "Date Range")
+
+# If user chose single date, show a single date input box
+conditionalPanel(condition = "input.range == 'Single Date'",
+                 dateInput("date", "Date:", value = "2010-07-01", 
+                           format = "mm/dd/yy"))
+
+#if user chose date range, show a date range input box
+conditionalPanel(condition = "input.range == 'Date Range'",
+                 dateRangeInput("date_range", "Date Range:", 
+                                start = "2010-07-01", 
+                                end = "2018-01-10", 
+                                format = "mm/dd/yy"))
+
+#allow user to choose well(s) by slope and or aspect
+#determine min and max for slope data
+minSlope <- min(slope_aspect_well_data$Slope)
+maxSlope <- max(slope_aspect_well_data$Slope, na.rm = TRUE)
+
+#make a slider widget for slope
+sliderInput("slope", "Select a slope range", 
+            min = minSlope, max = maxSlope,
+            value = c(minSlope, maxSlope), ticks = TRUE, dragRange = TRUE)
+
+#determine min and max for aspect data
+minAsp <- min(slope_aspect_well_data$Aspect)
+maxAsp <- max(slope_aspect_well_data$Aspect, na.rm = TRUE)
+
+#make a slider widget for aspect
+sliderInput("aspect", "Select an aspect range", 
+            min = minAsp, max = maxAsp,
+            value = c(minAsp, maxAsp), ticks = TRUE, dragRange = TRUE)
+
+# plots/refreshes data
+actionButton("plot", label = "Plot")
+```
+
+Column
+---------------------------------------------------------------------
+  
+### Water Level Plot
+
+```{r}
+# Renders the plot
+
+eventReactive(input$plot, {
+    runif(input$n)
+})
+renderPlot({
+  start_d <- input$date_range[1]
+  end_d <- input$date_range[2]
+  xmin <- input$plot_brush$xmin
+  xmax <- input$plot_brush$xmax
+  
+  #makes table to hold the selected aspect date    
+  asp_well_data <- slope_aspect_well_data %>% filter(Aspect >= input$Aspect[1] && Aspect <= input$Aspect[2])
+  asp_wells <- asp_well_data$Well
+  
+  selected_well_data <- well_data %>% filter(Well == input$select && Well == c(asp_wells))
+      
+  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
+                           color = Well)) + geom_line() +
+    scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
+    coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
+                                 as.POSIXct(input$date_range[2]))) +
+    theme_classic()
+})
+
+#for slope and aspect slider features
+#slope_aspect_well_data_filt_slope <- slope_aspect_well_data %>% filter(Slope >= input$slope[1] && Slope >= input$slope[2])
+#testSlope <- input$slope
+
+
+
+# For brushing feature
+ ranges <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
+                                           end = "2018-01-01")))
+ maxrange <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
+                                             end = "2018-01-01")))
+ observeEvent(input$plot1_dblclick,
+                 {
+                   brush <- input$plot1_brush
+                   if (!is.null(brush)) 
+                   {
+                     ranges$x <- c(brush$xmin, brush$xmax)
+                     
+                   } else {
+                     ranges$x <- c(min(well_data$date), 
+                                   max(well_data$date))
+                   }
+                 })
+```
