@@ -14,7 +14,7 @@ HPU <- read_csv("well_hpu.csv")
 colnames(data) = c("Well", "Time", "Level", "WtDepth")
 
 start_date <- "2012-01-01"
-end_date <- "2012-06-01"
+end_date <- "2012-04-15"
 
 target <- c("T1", "Q2", "Q1", "P2", "O2", "O1", "N5", "N4", "N3", "N2",
             "N1", "K9", "K8", "K7S", "K7D", "K6S", "K6D", "K5", "K4S", "K4M",
@@ -72,7 +72,7 @@ for (x in 3:10){
 }
 
 
-#DTW
+#DTW interval CVI calculation
 
 for (x in 3:10){
   #running DTW algorithm for each N Cluster in 3 to 10
@@ -165,55 +165,40 @@ VI <- CVI_results["VI"]
 
 external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI, ARI, J, FM, VI))
 
-#creating error matrix to compare k shape and DTW clusters to soil HPUs
-
-confusionMatrix(as.factor(k_shape_result@cluster), as.factor(HPU$WellClass))
-
-#problem with error matrix is that class names are assigned arbitrarily,
-#not sure if the accuracy assessments are taking this into account
-
-
 
 #manually create confusion matrix to test results
 
-#change this line to change what algorithm is being compared
-#can also use existing cluster results instead of running the clusters again
+#DTW contigency table and RI index calculation
 
-
-result <- tsclust(series = wellsList,
-                  type = "partitional",
-                  k = 6,
-                  distance = "sbd")
-
-result_df <- data.frame(Well = target,
-                        Cluster = result@cluster)
+dtw_result_df <- data.frame(Well = rev(target),
+                 Cluster = dtw_result@cluster)
 
 #create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
 #TRUE NEGATIVE, or FALSE NEGATIVE
 
-well_matrix <- matrix(, nrow = length(target), ncol = length(target))
-colnames(well_matrix) <- target
-rownames(well_matrix) <- target
+dtw_well_matrix <- matrix(nrow = length(target), ncol = length(target))
+colnames(dtw_well_matrix) <- target
+rownames(dtw_well_matrix) <- target
 
 #calculate outcomes and populate matrix
 for(well1 in target){
   for(well2 in target){
     if(well1 != well2){ 
-      if(is.na(well_matrix[well2, well1])){
-        if(result_df$Cluster[result_df$Well == well1] == result_df$Cluster[result_df$Well == well2]){
+      if(is.na(dtw_well_matrix[well2, well1])){
+        if(dtw_result_df$Cluster[dtw_result_df$Well == well1] == dtw_result_df$Cluster[dtw_result_df$Well == well2]){
           if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
-            well_matrix[well1, well2] <- "TP" 
+            dtw_well_matrix[well1, well2] <- "TP" 
           }
           else{
-            well_matrix[well1, well2] <- "FP" 
+            dtw_well_matrix[well1, well2] <- "FP" 
           }
         }
         else{
           if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
-            well_matrix[well1, well2] <- "FN" 
+            dtw_well_matrix[well1, well2] <- "FN" 
           }
           else{
-            well_matrix[well1, well2] <- "TN" 
+            dtw_well_matrix[well1, well2] <- "TN" 
           }
         }
       }
@@ -221,21 +206,68 @@ for(well1 in target){
   }
 }
 
+TP_dtw <- sum(dtw_well_matrix == "TP", na.rm = TRUE)
+FP_dtw <- sum(dtw_well_matrix == "FP", na.rm = TRUE)
+FN_dtw <- sum(dtw_well_matrix == "FN", na.rm = TRUE)
+TN_dtw <- sum(dtw_well_matrix == "TN", na.rm = TRUE)
+
+dtw_contingency_table <- matrix(data = c(TP_dtw, FP_dtw, FN_dtw, TN_dtw), nrow = 2, ncol = 2)
+
+rownames(dtw_contingency_table) <- c("Same Class", "Different Class")
+colnames(dtw_contingency_table) <- c("Same Cluster", "Different Cluster")
+
+dtw_rand_index <- (TP + TN)/(TP + TN + FP + FN)
 
 
-TP <- sum(well_matrix == "TP", na.rm = TRUE)
-FP <- sum(well_matrix == "FP", na.rm = TRUE)
-FN <- sum(well_matrix == "FN", na.rm = TRUE)
-TN <- sum(well_matrix == "TN", na.rm = TRUE)
+#KSHAPE#
 
-contingency_table <- matrix(data = c(TP, FP, FN, TN), nrow = 2, ncol = 2)
+k_shape_result_df <- data.frame(Well = rev(target),
+                     Cluster = k_shape_result@cluster)
 
-rownames(contingency_table) <- c("Same Class", "Different Class")
-colnames(contingency_table) <- c("Same Cluster", "Different Cluster")
+#create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
+#TRUE NEGATIVE, or FALSE NEGATIVE
 
-rand_index <- (TP + TN)/(TP + TN + FP + FN)
+k_shape_well_matrix <- matrix(nrow = length(target), ncol = length(target))
+colnames(k_shape_well_matrix) <- target
+rownames(k_shape_well_matrix) <- target
 
+#calculate outcomes and populate matrix
+for(well1 in target){
+  for(well2 in target){
+    if(well1 != well2){ 
+      if(is.na(k_shape_well_matrix[well2, well1])){
+        if(k_shape_result_df$Cluster[k_shape_result_df$Well == well1] == k_shape_result_df$Cluster[k_shape_result_df$Well == well2]){
+          if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+            k_shape_well_matrix[well1, well2] <- "TP" 
+          }
+          else{
+            k_shape_well_matrix[well1, well2] <- "FP" 
+          }
+        }
+        else{
+          if(HPU$WellClass[HPU$Well == well1] == HPU$WellClass[HPU$Well == well2]){
+            k_shape_well_matrix[well1, well2] <- "FN" 
+          }
+          else{
+            k_shape_well_matrix[well1, well2] <- "TN" 
+          }
+        }
+      }
+    }
+  }
+}
 
+TP_k_shape <- sum(k_shape_well_matrix == "TP", na.rm = TRUE)
+FP_k_shape <- sum(k_shape_well_matrix == "FP", na.rm = TRUE)
+FN_k_shape <- sum(k_shape_well_matrix == "FN", na.rm = TRUE)
+TN_k_shape <- sum(k_shape_well_matrix == "TN", na.rm = TRUE)
+
+k_shape_contingency_table <- matrix(data = c(TP_k_shape, FP_k_shape, FN_k_shape, TN_k_shape), nrow = 2, ncol = 2)
+
+rownames(k_shape_contingency_table) <- c("Same Class", "Different Class")
+colnames(k_shape_contingency_table) <- c("Same Cluster", "Different Cluster")
+
+k_shape_rand_index <- (TP + TN)/(TP + TN + FP + FN)
 
 
 
