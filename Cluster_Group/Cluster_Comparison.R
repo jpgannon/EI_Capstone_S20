@@ -3,8 +3,6 @@
 
 library(tidyverse)
 library(dtwclust)
-library(caret)
-
 
 setwd("C:/Capstone/Data")
 
@@ -13,8 +11,8 @@ HPU <- read_csv("well_hpu.csv")
 
 colnames(data) = c("Well", "Time", "Level", "WtDepth")
 
-start_date <- "2012-01-01"
-end_date <- "2012-04-15"
+start_date <- "2012-08-09"
+end_date <- "2012-08-11"
 
 target <- c("T1", "Q2", "Q1", "P2", "O2", "O1", "N5", "N4", "N3", "N2",
             "N1", "K9", "K8", "K7S", "K7D", "K6S", "K6D", "K5", "K4S", "K4M",
@@ -216,7 +214,7 @@ dtw_contingency_table <- matrix(data = c(TP_dtw, FP_dtw, FN_dtw, TN_dtw), nrow =
 rownames(dtw_contingency_table) <- c("Same Class", "Different Class")
 colnames(dtw_contingency_table) <- c("Same Cluster", "Different Cluster")
 
-dtw_rand_index <- (TP + TN)/(TP + TN + FP + FN)
+dtw_rand_index <- (TP_dtw + TN_dtw)/(TP_dtw + TN_dtw + FP_dtw + FN_dtw)
 
 
 #KSHAPE#
@@ -267,7 +265,7 @@ k_shape_contingency_table <- matrix(data = c(TP_k_shape, FP_k_shape, FN_k_shape,
 rownames(k_shape_contingency_table) <- c("Same Class", "Different Class")
 colnames(k_shape_contingency_table) <- c("Same Cluster", "Different Cluster")
 
-k_shape_rand_index <- (TP + TN)/(TP + TN + FP + FN)
+k_shape_rand_index <- (TP_k_shape + TN_k_shape)/(TP_k_shape + TN_k_shape + FP_k_shape + FN_k_shape)
 
 
 
