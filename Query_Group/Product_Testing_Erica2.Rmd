@@ -122,8 +122,8 @@ output$water_level <- renderPlot({
 
 ```{r}
 #helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
-getWellList <- function(maxVal, minVal) { 
-    wells <- slope_asp_data %>% filter(Slope >= input$slope[1] && Slope <= input$slope[2]) %>% select(Well)
+getWellList <- function(minVal, maxVal) { 
+    wells <- slope_asp_data %>% filter(between(Slope,minVal, maxVal)) %>% select(Well)
     return(c(wells))
   }
 ```
