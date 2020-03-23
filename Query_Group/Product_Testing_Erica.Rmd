@@ -1,5 +1,5 @@
 ---
-title: "Sample Layout"
+title: "Watershed Data Exploration Tool"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -11,9 +11,7 @@ runtime: shiny
 ```{r global, include=FALSE}
 # load necessary packages and data sets
 library(shiny)
-library(devtools)
 library(tidyverse)
-library(lubridate)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
                  'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
@@ -26,40 +24,19 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8',
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
 well_data <- read_csv("sept2011Data.csv")
-slope_aspect_well_data <- read_csv("slope_aspect_well_data.csv")
+slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 ```
 
 Column {.sidebar}
 ---------------------------------------------------------------------
   
-  Hi please edit me. Make me the instructions!
+Explore data from watershed 3 in Hubbard Brook.
   
 ```{r}
-# Select multiple wells based on well names
-selectInput("select", label = h3("Select Well(s)"), 
-            choices = wellNames, multiple = TRUE)
-
-# Select whether user wants single date or a range of dates
-selectInput("range", "Single Date or Range", 
-            choices = c("Single Date", "Date Range"),
-            selected = "Date Range")
-
-# If user chose single date, show a single date input box
-conditionalPanel(condition = "input.range == 'Single Date'",
-                 dateInput("date", "Date:", value = "2010-07-01", 
-                           format = "mm/dd/yy"))
-
-#if user chose date range, show a date range input box
-conditionalPanel(condition = "input.range == 'Date Range'",
-                 dateRangeInput("date_range", "Date Range:", 
-                                start = "2010-07-01", 
-                                end = "2018-01-10", 
-                                format = "mm/dd/yy"))
-
 #allow user to choose well(s) by slope and or aspect
 #determine min and max for slope data
-minSlope <- min(slope_aspect_well_data$Slope)
-maxSlope <- max(slope_aspect_well_data$Slope, na.rm = TRUE)
+minSlope <- min(slope_asp_data$Slope)
+maxSlope <- max(slope_asp_data$Slope, na.rm = TRUE)
 
 #make a slider widget for slope
 sliderInput("slope", "Select a slope range", 
@@ -67,16 +44,29 @@ sliderInput("slope", "Select a slope range",
             value = c(minSlope, maxSlope), ticks = TRUE, dragRange = TRUE)
 
 #determine min and max for aspect data
-minAsp <- min(slope_aspect_well_data$Aspect)
-maxAsp <- max(slope_aspect_well_data$Aspect, na.rm = TRUE)
+minAsp <- min(slope_asp_data$Aspect)
+maxAsp <- max(slope_asp_data$Aspect, na.rm = TRUE)
 
 #make a slider widget for aspect
 sliderInput("aspect", "Select an aspect range", 
             min = minAsp, max = maxAsp,
             value = c(minAsp, maxAsp), ticks = TRUE, dragRange = TRUE)
 
+
+# Select multiple wells based on well names
+selectInput("select_wells", "Select Well(s):", 
+            choices = wellNames, multiple = TRUE)
+
+#check box that gives user option to select all the wells from the well list
+checkboxInput("selectAllWellsBox", "Select all wells in well list", value = FALSE, width = NULL)
+
+# Select a date range
+dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
+               end = "2018-01-10", format = "mm/dd/yy")
+
+
 # plots/refreshes data
-actionButton("plot", label = "Plot")
+actionButton("plot_btn", label = "Plot")
 ```
 
 Column
@@ -85,52 +75,67 @@ Column
 ### Water Level Plot
 
 ```{r}
-# Renders the plot
+#changes wells if slope is chosen
+#sets wellNames to slope_wells when the slope input is changed
+observeEvent(input$slope, {updateSelectInput(session, input = "select_wells", label = NULL, choices = getWellList(input$slope[1], input$slope[2], input$aspect[1], input$aspect[2]), selected = NULL)})
 
-eventReactive(input$plot, {
-    runif(input$n)
+observeEvent(input$aspect, {updateSelectInput(session, input = "select_wells", label = NULL, choices = getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2]), selected = NULL)})
+
+
+#provides functionality to check box that allows user to add all wells currently in the wells list to the graph
+observeEvent(input$selectAllWellsBox, 
+             {updateSelectInput(session, 
+                                input = "select_wells", 
+                                label = NULL, 
+                                #choices = getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2]), 
+                                selected =if(input$selectAllWellsBox == TRUE){getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2])}else{NULL})})
+
+# Updates the well input when plot button is clicked
+wells <- eventReactive(input$plot_btn, {input$select_wells})
+
+final_dates <- reactiveValues(x = NULL)
+
+
+
+# Updates the date range input when plot button is clicked
+observeEvent(input$plot_btn, {
+  final_dates$x <- c(input$date_range[1], input$date_range[2])
+  })
+
+# Changes date range if brushing is detected
+observeEvent(input$wl_dblclick, {
+  brush <- input$wl_brush
+  if (!is.null(brush))
+    final_dates$x <- c(brush$xmin, brush$xmax)
+  else
+    final_dates$x <- c(input$date_range[1], input$date_range[2])
 })
-renderPlot({
-  start_d <- input$date_range[1]
-  end_d <- input$date_range[2]
-  xmin <- input$plot_brush$xmin
-  xmax <- input$plot_brush$xmax
+
+plotOutput("water_level", dblclick = "wl_dblclick", 
+           brush = brushOpts(id = "wl_brush"))
+
+#renders the plot
+output$water_level <- renderPlot({
   
-  #makes table to hold the selected aspect date    
-  asp_well_data <- slope_aspect_well_data %>% filter(Aspect >= input$Aspect[1] && Aspect <= input$Aspect[2])
-  asp_wells <- asp_well_data$Well
-  
-  selected_well_data <- well_data %>% filter(Well == input$select && Well == c(asp_wells))
-      
-  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, 
-                           color = Well)) + geom_line() +
-    scale_y_reverse() + ylab("Water Table Depth (cm)") + xlab("Date") +
-    coord_cartesian(xlim = c(as.POSIXct(input$date_range[1]), 
-                                 as.POSIXct(input$date_range[2]))) +
-    theme_classic()
+
+
+
+#subsets the wells by well selection
+  selected_well_data <- filter(well_data, Well == wells())
+
+#plots selected wells' well water level data
+  ggplot(data = selected_well_data, mapping = aes(x = date, y = level, color = Well)) + 
+    geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
+    xlab("Date") + theme_classic() +
+    coord_cartesian(xlim = as.POSIXct(final_dates$x, origin = "1970-01-01"), expand = FALSE)
 })
-
-#for slope and aspect slider features
-#slope_aspect_well_data_filt_slope <- slope_aspect_well_data %>% filter(Slope >= input$slope[1] && Slope >= input$slope[2])
-#testSlope <- input$slope
-
-
-
-# For brushing feature
- ranges <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
-                                           end = "2018-01-01")))
- maxrange <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
-                                             end = "2018-01-01")))
- observeEvent(input$plot1_dblclick,
-                 {
-                   brush <- input$plot1_brush
-                   if (!is.null(brush)) 
-                   {
-                     ranges$x <- c(brush$xmin, brush$xmax)
-                     
-                   } else {
-                     ranges$x <- c(min(well_data$date), 
-                                   max(well_data$date))
-                   }
-                 })
 ```
+
+```{r}
+#helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
+getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp) { 
+    wells <- slope_asp_data %>% filter(between(Slope,minValSlope, maxValSlope), between(Aspect, minValAsp, maxValAsp)) %>% select(Well)
+    return(c(wells))
+  }
+```
+
