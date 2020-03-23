@@ -57,6 +57,9 @@ sliderInput("aspect", "Select an aspect range",
 selectInput("select_wells", "Select Well(s):", 
             choices = wellNames, multiple = TRUE)
 
+#check box that gives user option to select all the wells from the well list
+checkboxInput("selectAllWellsBox", "Select all wells in well list", value = FALSE, width = NULL)
+
 # Select a date range
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
@@ -78,6 +81,14 @@ observeEvent(input$slope, {updateSelectInput(session, input = "select_wells", la
 
 observeEvent(input$aspect, {updateSelectInput(session, input = "select_wells", label = NULL, choices = getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2]), selected = NULL)})
 
+
+#provides functionality to check box that allows user to add all wells currently in the wells list to the graph
+observeEvent(input$selectAllWellsBox, 
+             {updateSelectInput(session, 
+                                input = "select_wells", 
+                                label = NULL, 
+                                #choices = getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2]), 
+                                selected =if(input$selectAllWellsBox == TRUE){getWellList(input$slope[1], input$slope[2],input$aspect[1], input$aspect[2])}else{NULL})})
 
 # Updates the well input when plot button is clicked
 wells <- eventReactive(input$plot_btn, {input$select_wells})
