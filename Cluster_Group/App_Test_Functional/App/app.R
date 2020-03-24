@@ -2,6 +2,7 @@ library(DT)
 library(shiny)
 library(tidyverse)
 library(lubridate)
+library(shinycssloaders)
 
 Master_List <- read_csv("C:/Users/Lauren/Documents/Capstone/Data/dtw_result.csv") #<- this is our local path to that file
 
@@ -76,7 +77,7 @@ ui <- fluidPage(
                 #       border-radius:5%;
                 #       font-size:18px;"),
                 downloadButton("downloadplot", "Download Plot!",
-                               style = "background-color:#0077FF;
+                               style = "background-color:#0dc5c1;
                       color:#FFFFFF;
                       border-color:#D1D1D1;
                       border-style:none;
@@ -84,7 +85,7 @@ ui <- fluidPage(
                       border-radius:5%;
                       font-size:14px;"),
                 downloadButton("downloaddata", "Download Data!",
-                               style = "background-color:#0077FF;
+                               style = "background-color:#0dc5c1;
                       color:#FFFFFF;
                       border-color:#D1D1D1;
                       border-style:none;
@@ -95,8 +96,8 @@ ui <- fluidPage(
             
             # Show a plot of the generated distribution
             mainPanel(
-                plotOutput("Plot"),
-                DT::dataTableOutput("mytable")
+                plotOutput("Plot") %>% withSpinner(color="#0dc5c1"),
+                DT::dataTableOutput("mytable") %>% withSpinner(color="#0dc5c1")
             )
         )
     )
@@ -211,8 +212,12 @@ server <- function(input, output) {
         Well_1_data <- Well_1_Input()
         Well_2_data <- Well_2_Input()
         
-        max_well_1_date <- max(Well_1_data$date.)
-        min_Well_1_date <- min(Well_1_data$date.)
+        # max_well_1_date <- max(Well_1_data$date.)
+        # min_Well_1_date <- min(Well_1_data$date.)
+        
+        max_well_1_date <- "2012-06-01"
+        min_Well_1_date <- "2012-01-01"
+        
         
         h4("Date Selection")
         dateRangeInput("dates", 
