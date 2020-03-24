@@ -230,6 +230,7 @@ server <- function(input, output) {
     })
     
     
+    
     output$Plot <- renderPlot({
         
         Well_1_data <- Well_1_Input()
@@ -261,7 +262,10 @@ server <- function(input, output) {
         for (i in 1:num_well1) {
             if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                 Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
-            } else {
+            } else if (Well_1_data$Well_1_level[i] == -99) {
+                Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
+            }
+            else {
                 Well_1_data$predicted_values[i] = Well_1_data$Well_1_level[i]
             }
         }
@@ -271,7 +275,10 @@ server <- function(input, output) {
         for (i in 1:num_well1) {
             if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                 Well_1_data$is_predicted[i] = TRUE
-            } else {
+            } else if (Well_1_data$Well_1_level[i] == -99) {
+                Well_1_data$is_predicted[i] = TRUE
+            }
+            else {
                 Well_1_data$is_predicted[i] = FALSE
             }
         }
@@ -286,52 +293,7 @@ server <- function(input, output) {
             theme_classic()
     })
     
-    Dataset <- reactive({
-        Well_1_data <- Well_1_Input()
-        Well_2_data <- Well_2_Input()
-        
-        Well_1_data <- Well_1_data %>%
-            filter(date. >= input$dates[1] & date. <= input$dates[2])
-        
-        Well_2_data <- Well_2_data %>%
-            filter(date. >= input$dates[1] & date. <= input$dates[2])
-        
-        Well_1_data <- left_join(Well_2_data, Well_1_data, by = "date.")
-        
-        Well_1_data <- plyr::rename(Well_1_data, c(level.x = "Well_2_level", level.y = "Well_1_level"))
-        
-        regression <- lm(Well_1_data$Well_1_level ~ Well_1_data$Well_2_level)
-        
-        #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
-        
-        slope <- regression$coefficients[2]
-        y_int <- regression$coefficients[1]
-        
-        Well_1_data <- Well_1_data %>%
-            mutate(predicted_values = NA) %>%
-            mutate(is_predicted = NA)
-        
-        num_well1 <- nrow(Well_1_data)
-        
-        for (i in 1:num_well1) {
-            if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
-                Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
-            } else {
-                Well_1_data$predicted_values[i] = Well_1_data$Well_1_level[i]
-            }
-        }
-        
-        Well_1_data$predicted_values <- as.numeric(Well_1_data$predicted_values)
-        
-        for (i in 1:num_well1) {
-            if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
-                Well_1_data$is_predicted[i] = TRUE
-            } else {
-                Well_1_data$is_predicted[i] = FALSE
-            }
-        }
-        return(Well_1_data)
-    })
+    
     
     output$mytable = DT::renderDataTable({
         Well_1_data <- Well_1_Input()
@@ -363,7 +325,10 @@ server <- function(input, output) {
         for (i in 1:num_well1) {
             if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                 Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
-            } else {
+            } else if (Well_1_data$Well_1_level[i] == -99) {
+                Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
+            }
+            else {
                 Well_1_data$predicted_values[i] = Well_1_data$Well_1_level[i]
             }
         }
@@ -373,7 +338,10 @@ server <- function(input, output) {
         for (i in 1:num_well1) {
             if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                 Well_1_data$is_predicted[i] = TRUE
-            } else {
+            } else if (Well_1_data$Well_1_level[i] == -99) {
+                Well_1_data$is_predicted[i] = TRUE
+            }
+            else {
                 Well_1_data$is_predicted[i] = FALSE
             }
         }
@@ -419,7 +387,10 @@ server <- function(input, output) {
             for (i in 1:num_well1) {
                 if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                     Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
-                } else {
+                } else if (Well_1_data$Well_1_level[i] == -99) {
+                    Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
+                }
+                else {
                     Well_1_data$predicted_values[i] = Well_1_data$Well_1_level[i]
                 }
             }
@@ -429,7 +400,10 @@ server <- function(input, output) {
             for (i in 1:num_well1) {
                 if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
                     Well_1_data$is_predicted[i] = TRUE
-                } else {
+                } else if (Well_1_data$Well_1_level[i] == -99) {
+                    Well_1_data$is_predicted[i] = TRUE
+                }
+                else {
                     Well_1_data$is_predicted[i] = FALSE
                 }
             }
