@@ -1,5 +1,7 @@
 library(patchwork)
 library(dtwclust)
+library(tidyverse)
+setwd("D:/Capstone/data")
 
 #clustering with dates with high precip
 data <- read_csv("oneHourSummary.csv")
@@ -15,28 +17,6 @@ target <- c("T1", "Q2", "Q1", "P2", "O2", "O1", "N5", "N4", "N3", "N2",
             "K4D", "K1D", "K11", "K10", "K1", "JD25", "JD24", "JD23",
             "JD22", "JD21", "JD03", "JD02", "I9", "I8", "I7", "I6", "I3", "H4",
             "D1", "A6")
-
-Wells2 <- data %>% 
-  filter(Well %in% target,
-         Time >= start_date,
-         Time <= end_date) %>% 
-  na.omit()
-
-wellsList2 <- lapply(split(Wells2$WtDepth, Wells2$Well), as.list)
-
-
-#dtw_basic is  much faster but might not be as "accurate" - seems to produce same results as dtw
-dtw_basic_results2 <- tsclust(wellsList2, type = "hierarchical", 6, distance = "dtw_basic")
-
-plot(dtw_basic_results2, main = "DWT BASIC")
-plot(dtw_basic_results, type = "series")
-plot(dtw_basic_results2, type = "series")
-
-basic_members2 <- data.frame(target, dtw_basic_results2@cluster)
-basic_members <- data.frame(target, dtw_basic_results@cluster)
-start_date <- "2012-08-01"
-end_date <- "2012-10-01"
-
 
 # 09/17 to 09/19
 Wells_slice1 <- data %>% 
