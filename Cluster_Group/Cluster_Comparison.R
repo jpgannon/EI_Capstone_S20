@@ -60,10 +60,10 @@ internal_results <- data.frame(Algorithm = character(),
 
 for (x in 3:10){
   #running k-shape algorithm for each N Cluster in 3 to 10
-  k_shape_result <- tsclust(series = wellsList,
-                        type = "partitional",
-                        k = x,
-                        distance = "sbd")
+  k_shape_result <- tsclust(series = normalizedWellsList,
+                            type = "partitional",
+                            k = x,
+                            distance = "sbd")
   
   #calculation of each Internal CVI
   
@@ -87,7 +87,7 @@ for (x in 3:10){
 
 for (x in 3:10){
   #running DTW algorithm for each N Cluster in 3 to 10
-  dtw_result <- tsclust(series = wellsList,
+  dtw_result <- tsclust(series = normalizedWellsList,
                             type = "hierarchical",
                             k = x,
                             distance = "dtw_basic")
@@ -140,7 +140,7 @@ external_results <- data.frame(Algorithm = character(),
 
 #Comparing K-shape with 6 clusters to soil HPUs
 
-k_shape_result <- tsclust(series = wellsList,
+k_shape_result <- tsclust(series = normalizedWellsList,
                           type = "partitional",
                           k = 6,
                           distance = "sbd")
@@ -159,7 +159,7 @@ external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI,
 
 
 #Comparing DTW with 6 clusters to soil HPUs
-dtw_result <- tsclust(series = wellsList,
+dtw_result <- tsclust(series = normalizedWellsList,
                           type = "hierarchical",
                           k = 6,
                           distance = "dtw_basic")
@@ -184,7 +184,7 @@ external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI,
 dtw_result_df <- data.frame(Well = rev(target),
                  Cluster = dtw_result@cluster)
 
-write_csv(dtw_result_df, path = "dtw_result.csv")
+#write_csv(dtw_result_df, path = "dtw_result.csv")
 
 #create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
 #TRUE NEGATIVE, or FALSE NEGATIVE
@@ -284,4 +284,4 @@ k_shape_rand_index <- (TP_k_shape + TN_k_shape)/(TP_k_shape + TN_k_shape + FP_k_
 
 
 
-plot(dtw_result, main =  "DTW (k=4) Results for Time Series 2")
+#plot(dtw_result, main =  "DTW (k=4) Results for Time Series 2")
