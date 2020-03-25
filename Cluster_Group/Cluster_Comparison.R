@@ -11,8 +11,8 @@ HPU <- read_csv("well_hpu.csv")
 
 colnames(data) = c("Well", "Time", "Level", "WtDepth")
 
-start_date <- "2012-08-09"
-end_date <- "2012-08-11"
+start_date <- "2012-01-01"
+end_date <- "2012-06-01"
 
 target <- c("T1", "Q2", "Q1", "P2", "O2", "O1", "N5", "N4", "N3", "N2",
             "N1", "K9", "K8", "K7S", "K7D", "K6S", "K6D", "K5", "K4S", "K4M",
@@ -28,6 +28,19 @@ Wells <- data %>%
 
 #create list of list for tsclust function
 wellsList <- lapply(split(Wells$WtDepth, Wells$Well), as.list)
+
+#create normalized well list
+
+normalize <- function(list){
+  minValue <- ifelse(min(unlist(list)) > 0, 0, min(unlist(list)))
+  maxValue <- max(unlist(list))
+  for (x in 1:length(list)){
+    list[x] <- (as.numeric(list[x]) - minValue)/(maxValue - minValue)
+  }
+  return(list)
+}
+
+normalizedWellsList <- lapply(wellsList, normalize)
 
 #establish emtpy data frame to store internal CVI results
 internal_results <- data.frame(Algorithm = character(),
@@ -171,6 +184,8 @@ external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI,
 dtw_result_df <- data.frame(Well = rev(target),
                  Cluster = dtw_result@cluster)
 
+write_csv(dtw_result_df, path = "dtw_result.csv")
+
 #create empty matrix to be populated with either TRUE POSITIVE, FALSE POSITIVE,
 #TRUE NEGATIVE, or FALSE NEGATIVE
 
@@ -269,4 +284,4 @@ k_shape_rand_index <- (TP_k_shape + TN_k_shape)/(TP_k_shape + TN_k_shape + FP_k_
 
 
 
-
+plot(dtw_result, main =  "DTW (k=4) Results for Time Series 2")
