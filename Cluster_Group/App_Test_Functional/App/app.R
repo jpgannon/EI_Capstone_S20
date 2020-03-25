@@ -76,6 +76,7 @@ ui <- fluidPage(
                 #       border-width:1px;
                 #       border-radius:5%;
                 #       font-size:18px;"),
+                checkboxInput("OtherPlot", "Check to view Well 2 Data on the plot", FALSE),
                 downloadButton("downloadplot", "Download Plot!",
                                style = "background-color:#0dc5c1;
                       color:#FFFFFF;
@@ -233,6 +234,8 @@ server <- function(input, output) {
     
     output$Plot <- renderPlot({
         
+        if(input$OtherPlot == FALSE) {
+            
         Well_1_data <- Well_1_Input()
         Well_2_data <- Well_2_Input()
         
@@ -291,6 +294,80 @@ server <- function(input, output) {
             ylab("Water Table Depth (cm)") +
             xlab("Date") +
             theme_classic()
+        } else {
+            
+            library(ggplot2)
+            
+            Well_1_data <- Well_1_Input()
+            Well_2_data <- Well_2_Input()
+            
+            Well_1_data <- Well_1_data %>%
+                filter(date. >= input$dates[1] & date. <= input$dates[2])
+            
+            Well_2_data <- Well_2_data %>%
+                filter(date. >= input$dates[1] & date. <= input$dates[2])
+            
+            Well_1_data <- left_join(Well_2_data, Well_1_data, by = "date.")
+            
+            Well_1_data <- plyr::rename(Well_1_data, c(level.x = "Well_2_level", level.y = "Well_1_level"))
+            
+            regression <- lm(Well_1_data$Well_1_level ~ Well_1_data$Well_2_level)
+            
+            #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
+            
+            slope <- regression$coefficients[2]
+            y_int <- regression$coefficients[1]
+            
+            Well_1_data <- Well_1_data %>%
+                mutate(predicted_values = NA) %>%
+                mutate(is_predicted = NA)
+            
+            num_well1 <- nrow(Well_1_data)
+            
+            for (i in 1:num_well1) {
+                if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
+                    Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
+                } else if (Well_1_data$Well_1_level[i] == -99) {
+                    Well_1_data$predicted_values[i] = ((slope*Well_1_data$Well_2_level[i]) + y_int)
+                }
+                else {
+                    Well_1_data$predicted_values[i] = Well_1_data$Well_1_level[i]
+                }
+            }
+            
+            Well_1_data$predicted_values <- as.numeric(Well_1_data$predicted_values)
+            
+            for (i in 1:num_well1) {
+                if (is.na(Well_1_data$Well_1_level[i]) == TRUE) {
+                    Well_1_data$is_predicted[i] = TRUE
+                } else if (Well_1_data$Well_1_level[i] == -99) {
+                    Well_1_data$is_predicted[i] = TRUE
+                }
+                else {
+                    Well_1_data$is_predicted[i] = FALSE
+                }
+            }
+            
+            for (i in 1:num_well1) {
+                if (Well_1_data$Well_2_level[i] == -99) {
+                    Well_1_data$Well_2_level[i] = NA
+                }
+                else {
+                    Well_1_data$Well_2_level[i] = Well_1_data$Well_2_level[i]
+                }
+            }
+            
+            #head(Well_2_data)
+            
+            ggplot(data = Well_1_data, aes(x = Well_1_data$date.)) + 
+                geom_line(aes(y = Well_1_data$predicted_values, color = is_predicted, group = 1)) + 
+                geom_line(aes(y = Well_1_data$Well_2_level), color="grey70") +
+                scale_y_reverse() +
+                ylab("Water Table Depth (cm)") +
+                xlab("Date") +
+                theme_classic()
+            
+    }
     })
     
     
