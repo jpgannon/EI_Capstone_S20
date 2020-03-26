@@ -1,4 +1,3 @@
-#setwd("C:/Users/lizaw/Desktop/Capstone/")
 
 library(shiny)
 library(tidyverse)
@@ -24,20 +23,23 @@ ui <- fluidPage(
                      separator = "to", startview = "year"),
       #Text input for wells
       textInput("well_input", "Enter well names with spaces in between",
-                value = "K9")
+                value = "K9"),
       
-      
-      
-    ),
-    mainPanel(
+      # Download Button
+      downloadButton("downloadData", "Download")),
+    
+  mainPanel(
       
       #Plots water table data and precipitation and map
       leafletOutput("map"),
-      plotOutput("precplot"),
+      plotOutput("precplot", width = "80%", height = "200px"),
       plotOutput("wellplot")
-    )
-  )
-)
+      
+      
+    )))
+  
+
+
 
 
 
@@ -92,13 +94,15 @@ server <- function(input, output, session) {
     precip_select <- filter(precipWS3, Precip == Precip, DATE >= start, DATE <= end)
     
     
-    ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
+    (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
       geom_line()+
       ylab("Precipitation (cm)")+
       xlab("Date") +
       scale_y_reverse()+
-      theme_classic()
+      theme_classic()) 
+      
   })
+
   
   
   # Load the txt file for mapping
@@ -147,12 +151,37 @@ server <- function(input, output, session) {
     #print(site_id)
     updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
   })
-   
+  
+  
+  
+  #Downloadable csv of selected dataset
+  
+  make_df <- reactive({
+    ID <- strsplit(input$well_input, " ")[[1]] #makes dataframe from user selection of data
+    
+    start <- input$date[1]
+    
+    end <- input$date[2]
+    
+    wells <- filter(welldata, Well == ID, date >= start, date <= end)
+    
+  })
+  output$results <- renderTable({make_df()})
+  
+  #Downloads subset of well data
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste(input$dataset, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(make_df(), file, row.names = FALSE)
+    })
+
+
   
 }
 
-
+# Runs the app
 app <- shinyApp(ui, server)
 runApp(app)
-
 
