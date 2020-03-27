@@ -19,11 +19,11 @@ ui <- fluidPage(
     sidebarPanel(
       
       #Creates calender to select date range
-      dateRangeInput("date", "Select date range:", start = "2010-08-10", end = "2018-10-08",
+      dateRangeInput("date", "Select date range:", start = "2014-11-01", end = "2014-12-01",
                      separator = "to", startview = "year"),
       #Text input for wells
       textInput("well_input", "Enter well names with spaces in between",
-                value = "K9"),
+                value = "JD29"),
       
       # Download Button
       downloadButton("downloadData", "Download")),
@@ -51,15 +51,8 @@ server <- function(input, output, session) {
   #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
   
   #Read in data
-  welldata <- read_csv("welldatahourly.csv") #filter(Well == "A5")
-  precip <- read_csv("dailyWatershedPrecip1956-2019.csv")
-  
-  
-  
-  
-  precipWS3 <- precip %>%
-    filter(precip$watershed == 3) %>% #Filter for watershed 3
-    mutate(Precip = Precip * .1) #Convert mm to cm to match water level units
+  welldata <- read_csv("welldatahourly.csv") 
+  precip <- read_csv("dailyprecip_WS3.csv")
   
   
   #Creates water table plot
@@ -96,7 +89,7 @@ server <- function(input, output, session) {
     
     (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
       geom_line()+
-      ylab("Precipitation (cm)")+
+      ylab("Precipitation (mm)")+
       xlab("Date") +
       scale_y_reverse()+
       theme_classic()) 
@@ -184,4 +177,5 @@ server <- function(input, output, session) {
 # Runs the app
 app <- shinyApp(ui, server)
 runApp(app)
+
 
