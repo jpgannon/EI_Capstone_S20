@@ -8,10 +8,10 @@ library(stringr)
 
 
 #Set working directory
-setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/WS3_waterlevel_data")
+setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group")
 
 #Create a variable that contains the w3well_locations file
-info <- read_csv("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/w3well_locations.txt")
+info <- read_csv("w3well_locations.txt")
 
 #create character vector with names of each .csv file that is within the set working directory 
 files <- dir(pattern = ".csv")
@@ -69,12 +69,32 @@ hourly <- hourly %>% ungroup() %>%
 #mean, na.rm = TRUE)
 
 head(hourly)
-tail(hourly)
+
 #creates new csv file with the dataframe
 write_csv(hourly, "welldatahourly.csv")
 
 
 
-well_data_hrly <- read_csv("welldatahourly.csv")
-head(well_data_hrly)
+#Read in streamflow data
+stream <- read_csv("HBEF_DailyStreamflow_1956-2017_longform.csv")
+head(stream)
 
+
+stream <- stream %>%
+  filter(Watershed == 3) %>% #Filter for watershed 3
+  filter(Streamflow != -99)  #Removes -99 (missing values)
+
+
+#Creates new csv with discharge data
+write_csv(stream, "stream_discharge_WS3.csv")
+
+
+
+#Read in precip data
+precip <- read_csv("dailyWatershedPrecip1956-2019.csv")
+
+precipWS3 <- precip %>%
+  filter(precip$watershed == 3) #Filter for watershed 3
+
+#Creates new precipitation csv with only watershed 3
+write_csv(precipWS3, "dailyprecip_WS3.csv")
