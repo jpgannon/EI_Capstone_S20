@@ -33,7 +33,8 @@ ui <- fluidPage(
       #Plots water table data and precipitation and map
       leafletOutput("map"),
       plotOutput("precplot", width = "80%", height = "200px"),
-      plotOutput("wellplot")
+      plotOutput("wellplot"),
+      plotOutput("weirplot")
       
       
     )))
@@ -53,6 +54,7 @@ server <- function(input, output, session) {
   #Read in data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
+  weir <- read_csv("stream_discharge_WS3.csv")
   
   
   #Creates water table plot
@@ -84,7 +86,7 @@ server <- function(input, output, session) {
     
     
     #Filter for dates selected
-    precip_select <- filter(precipWS3, Precip == Precip, DATE >= start, DATE <= end)
+    precip_select <- filter(precip, Precip == Precip, DATE >= start, DATE <= end)
     
     
     (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
@@ -96,7 +98,26 @@ server <- function(input, output, session) {
       
   })
 
-  
+  #Creates weir discharge plot
+  output$weirplot <- renderPlot({
+    
+    
+    start <- input$date[1]
+    
+    end <- input$date[2]
+    
+    
+    #Filter for dates selected
+    weir_select <- filter(weir, Streamflow == Streamflow, DATE >= start, DATE <= end)
+    
+    
+    (ggplot(data = weir_select, mapping = aes(x = DATE, y = Streamflow))+
+        geom_line()+
+        ylab("Weir Discharge (mm)")+
+        xlab("Date") +
+        theme_classic()) 
+    
+  })
   
   # Load the txt file for mapping
   well_locations <- read_csv("well_locationsDD.txt")
