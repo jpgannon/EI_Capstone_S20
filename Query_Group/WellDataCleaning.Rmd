@@ -57,6 +57,8 @@ finalWellData <- wellDataJoined %>% mutate(level = level - PipeHt)
 #make date a datetime type
 finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = ymd_hms(date))
 
+#write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanAllWellData.csv")
+
 #read in slope and aspect data for each well
 allSlopeAspData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Map_Group/Well_location_data.csv")
 
@@ -65,7 +67,7 @@ allSlopeAspData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/ca
 
 sept2011WellData <- finalWellData %>% filter(date > "2011-08-31" & date < "2011-10-01")
 
-write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
+#write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
 
 ```
 
@@ -106,4 +108,12 @@ allWeirData <- rbind(weirEarlyData, weirLaterData) %>% drop_na() %>% filter(WS =
 
 ggplot(allWeirData, aes(DATETIME, Gage_ft)) + geom_line() + labs(title = "Weir Gage Ft over time", x = "Date")
 ```
+
+Reads in HPU data and writes it in helpful format
+```{r}
+allHPUdataRaw <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/legacyDataNoNotes.csv")
+allHPUDataClean <- allHPUdataRaw %>% select(c(Well, HPU)) %>% na.omit()
+write_csv(allHPUDataClean, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/hpuDataClean.csv")
+```
+
 
