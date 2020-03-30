@@ -76,9 +76,9 @@ a6_gaps <- a6 %>%
 to_fill <- zoo(a6_gaps$wtdepth, a6_gaps$date.)  
 filler <- zoo(i7$wtdepth, i7$date.)
 combined <- merge(filler, to_fill) #combine data
-combined$to_fill <- na.approx(combined$to_fill, rule = 2, na.rm = TRUE) #interpolate NAs
+combined$to_fill <- na.approx(combined$to_fill, na.rm = TRUE) #interpolate NAs
 final_combination <- combined[index(filler),]
-final_combination <- as.data.frame(final_combination)
+final_combination <- fortify.zoo(final_combination, name = "date")
 
 ?na.approx
 ?index
@@ -93,4 +93,18 @@ rmse(final_combination$to_fill[2184:2281], a6$wtdepth[2184:2281])
 #february gap
 rmse(final_combination$to_fill[745:913], a6$wtdepth[745:913])
 
+a6_gaps <- a6_gaps %>% 
+  mutate(wtdepth = final_combination$to_fill)
+final_combination <- final_combination %>% 
+  mutate(date = row())
 
+a6_year_gap <- a6 %>% 
+  mutate(wtdepth = ifelse(date. >= "2012-02-01", ifelse(date. <= "2013-01-01", NA, wtdepth), wtdepth))
+
+
+to_fill <- zoo(a6_year_gap$wtdepth, a6_year_gap$date.)  
+filler <- zoo(i7$wtdepth, i7$date.)
+combined <- merge(filler, to_fill) #combine data
+combined$to_fill <- na.approx(combined$to_fill, na.rm = FALSE) #interpolate NAs
+final_combination <- combined[index(filler),]
+final_combination <- fortify.zoo(final_combination, name = "date")
