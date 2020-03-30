@@ -45,12 +45,6 @@ ui <- fluidPage(
     )))
 
 
-
-
-
-
-
-
 #define server logic to draw line plot
 server <- function(input, output, session) {
   
@@ -76,12 +70,7 @@ server <- function(input, output, session) {
   }
   )
   
-  #Selecting map markers
-  observeEvent(input$map_marker_click, { 
-    site <- input$map_marker_click
-    site_id <- site$id
-    updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
-  })
+ 
   
   
   #Creates water table plot
@@ -106,7 +95,12 @@ server <- function(input, output, session) {
   })
   
  
-  
+  #Selecting map markers
+  observeEvent(input$map_marker_click, { 
+    site <- input$map_marker_click
+    site_id <- site$id
+    updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
+  })
   
   #Creates precipitation plot
   output$precplot <- renderPlot({
