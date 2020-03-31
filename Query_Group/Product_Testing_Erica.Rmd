@@ -68,6 +68,9 @@ checkboxGroupInput("hpu", "Select desired HPU(s):", choices = unique(hpu_data$HP
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
 
+#change the size of the text in the plot using a slider
+sliderInput(inputId = "mag", label = strong("Plot text size."), min = 11, max = 24, value = 12)
+
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
@@ -137,7 +140,8 @@ output$water_level <- renderPlot({
   ggplot(data = selected_well_data, mapping = aes(x = date, y = level, color = Well)) + 
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
     xlab("Date") + theme_classic() +
-    coord_cartesian(xlim = as.POSIXct(final_dates$x, origin = "1970-01-01"), expand = FALSE)
+    coord_cartesian(xlim = as.POSIXct(final_dates$x, origin = "1970-01-01"), expand = FALSE)+
+      theme(text = element_text(size=input$mag))  #add this line to all graphs in order to change the font sizes 
 })
 ```
 

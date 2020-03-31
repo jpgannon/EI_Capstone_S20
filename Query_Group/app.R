@@ -19,7 +19,7 @@ ui <- fluidPage(
     sidebarPanel(
       
       #Creates calender to select date range
-      dateRangeInput("date", "Select date range:", start = "2014-11-01", end = "2014-12-01",
+      dateRangeInput("date", "Select date range:", start = "2007-08-10", end = "2018-10-08",
                      separator = "to", startview = "year"),
       #Text input for wells
       textInput("well_input", "Enter well names with spaces in between",
@@ -32,14 +32,14 @@ ui <- fluidPage(
       
       #Plots water table data and precipitation and map
       leafletOutput("map"),
-      plotOutput("precplot", width = "80%", height = "200px"),
-      plotOutput("wellplot", 
+      plotOutput("precplot", width = "145%", height = "200px"),
+      plotOutput("wellplot", width = "145%", height = "250px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
                    id = "plot1_brush",
                    resetOnNew = TRUE
                  )),
-      plotOutput("weirplot")
+      plotOutput("weirplot",width = "145%", height = "250px")
       
       
     )))
@@ -48,14 +48,18 @@ ui <- fluidPage(
 #define server logic to draw line plot
 server <- function(input, output, session) {
   
-  setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
+  #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
   
   #Read in data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
   
-  ranges <- reactiveValues(x = c("2014-11-01", "2014-12-01"))
+  
+#--------------------------------------------------------------------------------------
+  
+  #creates range for brushing
+  ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
   
   # When a double-click happens, check if there's a brush on the plot.
   # If so, zoom to the brush bounds; if not, reset the zoom.
@@ -71,7 +75,7 @@ server <- function(input, output, session) {
   )
   
  
-  
+  #------------------------------------------------------------------------------------
   
   #Creates water table plot
   output$wellplot <- renderPlot({
@@ -102,6 +106,8 @@ server <- function(input, output, session) {
     updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
   })
   
+  #------------------------------------------------------------------------------------------------
+  
   #Creates precipitation plot
   output$precplot <- renderPlot({
     
@@ -119,8 +125,7 @@ server <- function(input, output, session) {
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
         xlab("Date") +
-        theme_classic()) 
-    
+        theme_classic())
   })
   
   #Creates weir discharge plot
@@ -140,9 +145,12 @@ server <- function(input, output, session) {
         geom_line()+
         ylab("Weir Discharge (mm)")+
         xlab("Date") +
-        theme_classic()) 
+        theme_classic())
+      
     
   })
+  
+  #--------------------------------------------------------------------------------------------------
   
   # Load the txt file for mapping
   well_locations <- read_csv("well_locationsDD.txt")
