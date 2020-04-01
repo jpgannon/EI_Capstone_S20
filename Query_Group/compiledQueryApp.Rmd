@@ -72,10 +72,16 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 actionButton("plot_btn", label = "Plot")
 ```
 
-Row {data-height=100}
----------------------------------------------------------------------
- 
-### Precipitation Plot
+Column
+----------------------------------------------------------------------
+---
+title: "Row Orientation"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+---
+
+### Precipitation
 
 ```{r}
 # Updates the well input when plot button is clicked
@@ -90,7 +96,7 @@ observeEvent(input$plot_btn, {
 renderPlot({
   
   ggplot(data = precip_data, aes(fill = Type, y = Value, x = DATE)) + 
-  geom_bar(position = "stack", stat = "identity") + 
+  geom_bar(position = "stack", stat = "identity") + ylab("Precipitation (mm)")+
     theme_classic() +
     coord_cartesian(xlim = as.Date(final_datesP$x, coord_cartesian), expand = FALSE)
 
@@ -98,8 +104,7 @@ renderPlot({
 ```
   
 Row
----------------------------------------------------------------------
-
+-------------------------------------
 ### Water Level Plot
 
 ```{r}
@@ -159,9 +164,9 @@ output$water_level <- renderPlot({
     coord_cartesian(xlim = as.POSIXct(final_dates$x, origin = "1970-01-01"), expand = FALSE)
 })
 ```
-Row {data-height=100}
----------------------------------------------------------------------
-   
+
+Row
+-------------------------------------
 ### Discharge
 ```{r}
 renderPlot({
