@@ -8,7 +8,7 @@ library(shinycssloaders)
 # import data
 setwd("D:/Capstone/data")
 wells <- read_csv("hourly.csv")
-clusters <- read_csv("dtw_results.csv")
+clusters <- read_csv("dtw_result.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
 
