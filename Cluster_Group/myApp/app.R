@@ -17,10 +17,10 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
+      actionButton("show", "Show App User Guide"),
       selectInput("filling_choice", label = h5("Select a gap filling method:"),
                   choices = prediction_choices),
       h3("Well Selection"),
-      h5("Well 1 is the well containing missing data that will need to be predicted."),
       selectInput("well1", label = h5("Select Well One:"),
                   choices = wellsList),
       uiOutput("Well_2_Req"),
@@ -53,6 +53,38 @@ ui <- fluidPage(
 )
 
 server <- function(input, output){
+  
+  observeEvent(input$show, {
+    showModal(modalDialog(
+      title = "How To Use the App:",
+      HTML("1. Select which gap filling method you would like to use <br> 
+      Tip: Is the gap a smaller time period? <br>
+             If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
+             If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
+             <br>
+             2. Select Well 1 <br>
+             What well has missing data that you are trying to fill with synthetic data? <br>
+             <br>
+             3. Select Well 2 <br>
+             Tip: Are you using the Interpolation method? <br>
+             If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
+             If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
+             <br>
+             4. Select the Date range for the missing data <br>
+             You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
+             <br>
+             5. View the plot <br>
+             If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
+             <br>
+             6. View the datatable (below the plot) <br>
+             This allows the user to view the raw data being plotted <br>
+             <br>
+             7. If desired, click the button to Download Plot <br>
+             <br>
+             8. If desired, click the button to Download Data"
+      )
+    ))
+  })
   
   Well_1_input <- reactive({
     wells %>% 
