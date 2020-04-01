@@ -10,12 +10,15 @@ setwd("D:/Capstone/data")
 wells <- read_csv("hourly.csv")
 clusters <- read_csv("dtw_result.csv")
 wellsList <- as.list(unique(wells$Well))
+prediction_choices <- c("Interpolation", "Linear-Regression")
 
 ui <- fluidPage(
   titlePanel("Predictive Well Data Gap Filling"),
   
   sidebarLayout(
     sidebarPanel(
+      selectInput("filling_choice", label = h5("Select a gap filling method:"),
+                  choices = prediction_choices),
       h3("Well Selection"),
       h5("Well 1 is the well containing missing data that will need to be predicted."),
       selectInput("well1", label = h5("Select Well One:"),
@@ -100,27 +103,83 @@ server <- function(input, output){
   
   Dataset <- reactive({
     
-    Well_1_data <- Well_1_input()
-    Well_2_data <- Well_2_input()
+    combined <- data.frame()
     
-    Well_1_data <- Well_1_data %>% 
-      filter(date. >= input$dates[1] & date. <= input$dates[2])
-    Well_2_data <- Well_2_data %>% 
-      filter(date. >= input$dates[1] & date. <= input$dates[2])
+    if(input$filling_choice == "Interpolation"){
+      Well_1_data <- Well_1_input()
+      Well_2_data <- Well_2_input()
     
-    Well_1_data <- Well_1_data %>% 
-      select(date., wtdepth)
-    Well_2_data <- Well_2_data %>% 
-      select(date., wtdepth)
+      Well_1_data <- Well_1_data %>% 
+        filter(date. >= input$dates[1] & date. <= input$dates[2])
+      Well_2_data <- Well_2_data %>% 
+        filter(date. >= input$dates[1] & date. <= input$dates[2])
     
-    combined <- left_join(Well_2_data, Well_1_data, by = "date.")
-    colnames(combined) <- c("date.", "well_2", "well_1")
+      Well_1_data <- Well_1_data %>% 
+        select(date., wtdepth)
+      Well_2_data <- Well_2_data %>% 
+        select(date., wtdepth)
     
-    # interpolation of well 1 based on well 2 data
-    combined <- combined %>% 
-      mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
-    combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE) #interpolate NAs
+      combined <- left_join(Well_2_data, Well_1_data, by = "date.")
+      colnames(combined) <- c("date.", "well_2", "well_1")
     
+      # interpolation of well 1 based on well 2 data
+      combined <- combined %>% 
+        mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
+      combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE) #interpolate NAs
+      
+    } else if (input$filling_choice == "Linear-Regression"){
+      
+      Well_1_data <- Well_1_input()
+      Well_2_data <- Well_2_input()
+      
+      Well_1_data <- Well_1_data %>%
+        filter(date. >= input$dates[1] & date. <= input$dates[2])
+      Well_2_data <- Well_2_data %>%
+        filter(date. >= input$dates[1] & date. <= input$dates[2])
+      
+      combined <- left_join(Well_2_data, Well_1_data, by = "date.")
+      
+      combined <- plyr::rename(combined, c(level.x = "Well_2_level", level.y = "Well_1_level"))
+      
+      regression <- lm(Well_1_level ~ Well_2_level, combined)
+      
+      #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
+      
+      slope <- regression$coefficients[2]
+      y_int <- regression$coefficients[1]
+      
+      combined <- combined %>%
+        mutate(predicted_values = NA) %>%
+        mutate(is_predicted = NA)
+      
+      num_well1 <- nrow(combined)
+      
+      for (i in 1:num_well1) {
+        if (is.na(combined$Well_1_level[i]) == TRUE) {
+          combined$predicted_values[i] = ((slope*combined$Well_2_level[i]) + y_int)
+        } else if (combined$Well_1_level[i] == -99) {
+          combined$predicted_values[i] = ((slope*combined$Well_2_level[i]) + y_int)
+        }
+        else {
+          combined$predicted_values[i] = combined$Well_1_level[i]
+        }
+      }
+      
+      combined$predicted_values <- as.numeric(combined$predicted_values)
+      
+      for (i in 1:num_well1) {
+        if (is.na(combined$Well_1_level[i]) == TRUE) {
+          combined$is_predicted[i] = TRUE
+        } else if (combined$Well_1_level[i] == -99) {
+          combined$is_predicted[i] = TRUE
+        }
+        else {
+          combined$is_predicted[i] = FALSE
+        }
+      }
+      
+      combined <- plyr::rename(combined, c(Well_2_level = "well_2", Well_1_level = "well_1"))
+    }
     return(combined)
   })
   
