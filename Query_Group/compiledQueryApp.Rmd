@@ -168,7 +168,8 @@ renderPlot({
   geom_line()+ 
   theme_classic() +
   ylab("Discharge Liter/Second")+
-  xlab("Date")
+  xlab("Date") +
+    coord_cartesian(xlim = as.POSIXct(final_dates$x, origin = "1970-01-01"), expand = FALSE)
 })
 
 ```
