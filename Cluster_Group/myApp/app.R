@@ -7,8 +7,8 @@ library(shinycssloaders)
 
 # import data
 setwd("D:/Capstone/data")
-wells <- read_csv("hourly.csv")
-clusters <- read_csv("dtw_result.csv")
+wells <- read_csv("oneHourSummary.csv")
+clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
 
@@ -67,9 +67,16 @@ server <- function(input, output){
       select(Cluster) %>% 
       as.numeric()
     
+    if(well_1_cluster == 5){
+      well_2_options <- clusters %>%
+        select(Well, Cluster) %>% 
+        as.list()
+    }else{
     well_2_options <- clusters %>% 
-      filter(Cluster == well_1_cluster) %>% 
+      filter(Cluster == well_1_cluster) %>%
+      select(Well, Cluster) %>% 
       as.list()
+    }
     
     selectInput("Well_2_Selection", label = h5("Select Well 2:"),
                 choices = well_2_options,
@@ -88,8 +95,8 @@ server <- function(input, output){
     Well_1_data <- Well_1_input()
     Well_2_data <- Well_2_input()
     
-    min_date <- "2012-01-01"
-    max_date <- "2012-06-01"
+    min_date <- "2007-08-10"
+    max_date <- "2018-10-08"
     
     h4("Date Selection")
     dateRangeInput("dates",
@@ -126,6 +133,7 @@ server <- function(input, output){
       combined <- combined %>% 
         mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
       combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE) #interpolate NAs
+      combined <- combined[,c(1, 3, 2, 4)]  # rearrange columns to make well 1 before well 2
       
     } else if (input$filling_choice == "Linear-Regression"){
       
@@ -190,6 +198,16 @@ server <- function(input, output){
     
     well_data <- Dataset()
     
+    w1 <- as.character(Well_1_input()[1, 1])
+    w1_hpu <- clusters %>% 
+      filter(Well == w1)
+    w1_hpu <- as.character(w1_hpu[1, 3])
+    w2 <- as.character(Well_2_input()[1, 1])
+    w2_hpu <- clusters %>% 
+      filter(Well == w2)
+    w2_hpu <- as.character(w2_hpu[1, 3])
+    
+    # different ggplots for interpolation and linear regression situations
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       
       ggplot() +
@@ -202,7 +220,10 @@ server <- function(input, output){
                                 y = well_1)) +
         scale_y_reverse() +
         labs(x = "Date",
-             y = "Water Table Depth (cm)")
+             y = "Water Table Depth (cm)",
+             caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+             title = paste("Water Depth for Wells", w1, "and", w2)) +
+        theme_bw()
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
         
         fit <- lm(well_2 ~ date., data = well_data)
@@ -216,7 +237,9 @@ server <- function(input, output){
           scale_y_reverse() +
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
       }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
       
       ggplot() +
@@ -233,7 +256,10 @@ server <- function(input, output){
                                 y = well_1)) +
         scale_y_reverse() +
         labs(x = "Date",
-             y = "Water Table Depth (cm)")
+             y = "Water Table Depth (cm)",
+             caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+             title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
     } else{
         
         fit <- lm(well_2 ~ date., data = well_data)
@@ -251,7 +277,9 @@ server <- function(input, output){
           scale_y_reverse() +
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
     }
   }
   )
@@ -275,6 +303,14 @@ server <- function(input, output){
       well_data <- Dataset()
       
       plot <- ggplot()
+      w1 <- as.character(Well_1_input()[1, 1])
+      w1_hpu <- clusters %>% 
+        filter(Well == w1)
+      w1_hpu <- as.character(w1_hpu[1, 3])
+      w2 <- as.character(Well_2_input()[1, 1])
+      w2_hpu <- clusters %>% 
+        filter(Well == w2)
+      w2_hpu <- as.character(w2_hpu[1, 3])
       
       if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
         
@@ -288,7 +324,10 @@ server <- function(input, output){
                                   y = well_1)) +
           scale_y_reverse() +
           labs(x = "Date",
-               y = "Water Table Depth (cm)")
+               y = "Water Table Depth (cm)",
+               caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
       } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
         
         fit <- lm(well_2 ~ date., data = well_data)
@@ -302,7 +341,9 @@ server <- function(input, output){
           scale_y_reverse() +
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
       }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
         
         plot <- ggplot() +
@@ -319,7 +360,10 @@ server <- function(input, output){
                                   y = well_1)) +
           scale_y_reverse() +
           labs(x = "Date",
-               y = "Water Table Depth (cm)")
+               y = "Water Table Depth (cm)",
+               caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells", w1, "and", w2)) +
+          theme_bw()
       } else{
         
         fit <- lm(well_2 ~ date., data = well_data)
@@ -337,7 +381,9 @@ server <- function(input, output){
           scale_y_reverse() +
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+               title = paste("Water Depth for Wells ", w1, "and ", w2)) +
+          theme_bw()
       }
       
       print(plot)
