@@ -1,4 +1,3 @@
-
 library(shiny)
 library(tidyverse)
 library(lubridate)
@@ -6,23 +5,32 @@ library(patchwork)
 library(leaflet)
 library(sf)
 library(shinyWidgets)
+library(shinythemes)
+
 
 
 # Define UI for application that plots wells for a specific time period
 ui <- fluidPage(
   
+  #Set theme
+  theme = shinytheme("flatly"),
+  
   #Application title
-  titlePanel("Watershed 3 well visualization"),
+  titlePanel("Watershed 3 Well Visualization"),
   
   sidebarLayout(
-    position = "right",
+    position = "left",
     sidebarPanel(
+      h5("Explore Precipiation, Streamflow, and Water Table level for watershed 3 at the Hubbard Brook Experimental Forest"),
+      h5(strong("Location"), "White Mountain National Forest, NH, USA"),
+      h5(strong("TO ZOOM: On any plot, click and drag and then double click. 
+                      Double click again to zoom to full extent.")),
       
       #Creates calender to select date range
-      dateRangeInput("date", "Select date range:", start = "2014-11-01", end = "2014-12-01",
+      dateRangeInput("date", "Select date range:", start = "2007-08-10", end = "2018-10-08",
                      separator = "to", startview = "year"),
       #Text input for wells
-      textInput("well_input", "Enter well names with spaces in between",
+      textInput("well_input", "Enter well names with spaces in between or select from map",
                 value = "JD29"),
       
       # Download Button
@@ -30,16 +38,24 @@ ui <- fluidPage(
     
     mainPanel(
       
-      #Plots water table data and precipitation and map
+      #Plots the map and graphs
       leafletOutput("map"),
-      plotOutput("precplot", width = "80%", height = "200px"),
-      plotOutput("wellplot", 
+      plotOutput("precplot", width = "100%", height = "150px",
+                 dblclick = "plot1_dblclick",
+                 brush = brushOpts(
+                   id = "plot1_brush",
+                   resetOnNew = TRUE)),
+      plotOutput("wellplot", width = "100%", height = "200px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
                    id = "plot1_brush",
                    resetOnNew = TRUE
                  )),
-      plotOutput("weirplot")
+      plotOutput("weirplot",width = "100%", height = "200px",
+                 dblclick = "plot1_dblclick",
+                 brush = brushOpts(
+                   id = "plot1_brush",
+                   resetOnNew = TRUE))
       
       
     )))
@@ -54,8 +70,19 @@ server <- function(input, output, session) {
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
+
   
-  ranges <- reactiveValues(x = c("2014-11-01", "2014-12-01"))
+  #Creates widths for plots
+  p1_widths <- reactiveVal(value = NULL)
+  
+  
+  #creates date range
+  ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
+  
+  #CUpdates date range when date is selected
+  observeEvent(input$date, {
+    ranges$x <- c(input$date[1], input$date[2])
+  })
   
   # When a double-click happens, check if there's a brush on the plot.
   # If so, zoom to the brush bounds; if not, reset the zoom.
@@ -71,8 +98,7 @@ server <- function(input, output, session) {
   )
   
  
-  
-  
+ 
   #Creates water table plot
   output$wellplot <- renderPlot({
     ID <- strsplit(input$well_input, " ")[[1]]
@@ -85,13 +111,14 @@ server <- function(input, output, session) {
     wells <- filter(welldata, Well == ID) #, date >= start, date <= end)
     
     ggplot(data = wells, mapping = aes(x = date, y = wtdepth, color = Well))+
-      geom_line()+
-      scale_y_reverse()+
-      ylab("Water Table Depth (cm)")+
-      xlab("Date") +
-      coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
-      theme_classic()+
-      theme(legend.position = "bottom")
+        geom_line()+
+        scale_y_reverse()+
+        ylab("Water Table Depth (cm)")+
+        xlab("Date") +
+        coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
+        theme_classic()+
+        theme(legend.position = "bottom")
+
   })
   
  
@@ -102,48 +129,63 @@ server <- function(input, output, session) {
     updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
   })
   
+
+  #converts date column to match well data
+  precip <- precip %>%
+    mutate(DATE = as.POSIXct(DATE))
+  
+  
   #Creates precipitation plot
   output$precplot <- renderPlot({
     
     
-    start <- input$date[1]
+    #start <- input$date[1]
     
-    end <- input$date[2]
+    #end <- input$date[2]
     
     
     #Filter for dates selected
-    precip_select <- filter(precip, Precip == Precip, DATE >= start, DATE <= end)
+    precip_select <- filter(precip, Precip == Precip) #, DATE >= start, DATE <= end)
     
     
     (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
         xlab("Date") +
-        theme_classic()) 
-    
+        coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
+        theme_classic())
+
   })
+  
+  #Converts date column to match well data
+  weir <- weir %>%
+    mutate(DATE = as.POSIXct(DATE))
+  
   
   #Creates weir discharge plot
   output$weirplot <- renderPlot({
     
     
-    start <- input$date[1]
+    #start <- input$date[1]
     
-    end <- input$date[2]
+    #end <- input$date[2]
     
     
     #Filter for dates selected
-    weir_select <- filter(weir, Streamflow == Streamflow, DATE >= start, DATE <= end)
+    weir_select <- filter(weir, Streamflow == Streamflow) #, DATE >= start, DATE <= end)
     
     
     (ggplot(data = weir_select, mapping = aes(x = DATE, y = Streamflow))+
         geom_line()+
         ylab("Weir Discharge (mm)")+
         xlab("Date") +
-        theme_classic()) 
+        coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
+        theme_classic())
+      
     
   })
   
+
   # Load the txt file for mapping
   well_locations <- read_csv("well_locationsDD.txt")
   
@@ -192,11 +234,11 @@ server <- function(input, output, session) {
   make_df <- reactive({
     ID <- strsplit(input$well_input, " ")[[1]] #makes dataframe from user selection of data
     
-    start <- input$date[1]
+    #start <- input$date[1]
     
-    end <- input$date[2]
+    #end <- input$date[2]
     
-    wells <- filter(welldata, Well == ID, date >= start, date <= end)
+    wells <- filter(welldata, Well == ID, date >= ranges$x[1], date <= ranges$x[2])
     
   })
   output$results <- renderTable({make_df()})
