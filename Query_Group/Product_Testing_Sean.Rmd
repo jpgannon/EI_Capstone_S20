@@ -12,6 +12,9 @@ runtime: shiny
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
+if (require(devtools)) install.packages("devtools")
+  devtools::install_github("AnalytixWare/ShinySky")
+library(shinysky) 
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
                  'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
@@ -23,8 +26,10 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8',
                  'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
+precip_data <- read_csv("PrecipSnow_BarData.csv")
 well_data <- read_csv("sept2011Data.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
+hpu_data <- read_csv("hpuDataClean.csv")
 ```
 
 Column {.sidebar}
@@ -61,11 +66,37 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
+busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
-Column
+Row {data-height=200}
 ---------------------------------------------------------------------
+ 
+### Precip Plot
+
+```{r}
+# Updates the well input when plot button is clicked
+final_datesP <- reactiveValues(x = NULL)
+
+# Updates the date range input when plot button is clicked
+observeEvent(input$plot_btn, {
+  final_datesP$x <- c(input$date_range[1], input$date_range[2])
+  })
+
+# renders the plot
+renderPlot({
   
+  ggplot(data = precip_data, aes(fill = Type, y = Value, x = DATE)) + 
+  geom_bar(position = "stack", stat = "identity") + 
+    theme_classic() +
+    coord_cartesian(xlim = as.Date(final_datesP$x, coord_cartesian), expand = FALSE)
+
+})
+```
+  
+Row
+---------------------------------------------------------------------
+
 ### Water Level Plot
 
 ```{r}
@@ -128,4 +159,5 @@ output$water_level <- renderPlot({
 getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp) { 
     wells <- slope_asp_data %>% filter(between(Slope,minValSlope, maxValSlope), between(Aspect, minValAsp, maxValAsp)) %>% select(Well)
     return(c(wells))
-  }
+}
+```

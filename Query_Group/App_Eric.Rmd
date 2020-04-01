@@ -24,7 +24,7 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8',
                  'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
-setwd("C:/Users/Eric Rosenthal/Documents/SeniorYear2/Cap_git/EI_Capstone_S20/Query_Group")
+#setwd("C:/Users/Eric Rosenthal/Documents/SeniorYear2/Cap_git/EI_Capstone_S20/Query_Group")
 well_data <- read_csv("sept2011Data.csv")
 precip_data <- read_csv("PrecipSnow_BarData.csv")
 ```
@@ -97,7 +97,7 @@ output$precip_level <- renderPlot({
   ggplot(precip_data, aes(fill = Type, y = Value, x = DATE)) + 
   geom_bar(position="stack", stat="identity") + 
     theme_classic() +
-    coord_cartesian(xlim = as.POSIXct(final_datesP$x,coord_cartesian), expand = FALSE) #if you delete this line it will appear on the graph above
+    coord_cartesian(xlim = as.Date(final_datesP$x,coord_cartesian), expand = FALSE) #if you delete this line it will appear on the graph above
 
   
 
