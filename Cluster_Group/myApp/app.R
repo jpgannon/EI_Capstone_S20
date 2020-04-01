@@ -8,7 +8,7 @@ library(shinycssloaders)
 # import data
 setwd("D:/Capstone/data")
 wells <- read_csv("hourly.csv")
-clusters <- read_csv("dtw_result.csv")
+clusters <- read_csv("dtw_results.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
 
@@ -108,20 +108,20 @@ server <- function(input, output){
     if(input$filling_choice == "Interpolation"){
       Well_1_data <- Well_1_input()
       Well_2_data <- Well_2_input()
-    
+      
       Well_1_data <- Well_1_data %>% 
         filter(date. >= input$dates[1] & date. <= input$dates[2])
       Well_2_data <- Well_2_data %>% 
         filter(date. >= input$dates[1] & date. <= input$dates[2])
-    
+      
       Well_1_data <- Well_1_data %>% 
         select(date., wtdepth)
       Well_2_data <- Well_2_data %>% 
         select(date., wtdepth)
-    
+      
       combined <- left_join(Well_2_data, Well_1_data, by = "date.")
       colnames(combined) <- c("date.", "well_2", "well_1")
-    
+      
       # interpolation of well 1 based on well 2 data
       combined <- combined %>% 
         mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
@@ -139,7 +139,7 @@ server <- function(input, output){
       
       combined <- left_join(Well_2_data, Well_1_data, by = "date.")
       
-      combined <- plyr::rename(combined, c(level.x = "Well_2_level", level.y = "Well_1_level"))
+      combined <- plyr::rename(combined, c(wtdepth.x = "Well_2_level", wtdepth.y = "Well_1_level"))
       
       regression <- lm(Well_1_level ~ Well_2_level, combined)
       
@@ -156,9 +156,9 @@ server <- function(input, output){
       
       for (i in 1:num_well1) {
         if (is.na(combined$Well_1_level[i]) == TRUE) {
-          combined$predicted_values[i] = ((slope*combined$Well_2_level[i]) + y_int)
+          combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
         } else if (combined$Well_1_level[i] == -99) {
-          combined$predicted_values[i] = ((slope*combined$Well_2_level[i]) + y_int)
+          combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
         }
         else {
           combined$predicted_values[i] = combined$Well_1_level[i]
@@ -179,6 +179,8 @@ server <- function(input, output){
       }
       
       combined <- plyr::rename(combined, c(Well_2_level = "well_2", Well_1_level = "well_1"))
+      combined <- combined %>% 
+        select(date., well_1, well_2, is_predicted, predicted_values)
     }
     return(combined)
   })
@@ -187,7 +189,7 @@ server <- function(input, output){
   output$Plot <- renderPlot({
     
     well_data <- Dataset()
-      
+    
     if(input$Well_2_Plot == FALSE){
       ggplot() +
         geom_point(data = well_data,
@@ -200,6 +202,22 @@ server <- function(input, output){
         scale_y_reverse() +
         labs(x = "Date",
              y = "Water Table Depth (cm)")
+      
+      if(input$filling_choice == "Linear-Regression"){
+        
+        fit <- lm(well_2 ~ date., data = well_data)
+        
+        ggplot() +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = predicted_values, 
+                                  color = is_predicted, group = 1)) +
+          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
+          scale_y_reverse() +
+          ylab("Water Table Depth (cm)") +
+          xlab("Date") +
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+      }
     } else{  # plotting well 1 and well 2
       
       ggplot() +
@@ -209,8 +227,8 @@ server <- function(input, output){
                                  color = is_predicted)) +
         geom_line(data = well_data,   # well 2
                   mapping = aes(x = date.,
-                                y = well_2,
-                  color = "grey70")) +
+                                y = well_2),
+                  color = "grey70") +
         geom_line(data = well_data,
                   mapping = aes(x = date.,
                                 y = well_1)) +
@@ -218,6 +236,25 @@ server <- function(input, output){
         labs(x = "Date",
              y = "Water Table Depth (cm)")
       
+      if(input$filling_choice == "Linear-Regression"){
+        
+        fit <- lm(well_2 ~ date., data = well_data)
+        
+        ggplot() +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = predicted_values, 
+                                  color = is_predicted, group = 1)) +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = well_2),
+                    color = "grey70") +
+          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
+          scale_y_reverse() +
+          ylab("Water Table Depth (cm)") +
+          xlab("Date") +
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+      }
     }
   })
   
@@ -272,9 +309,9 @@ server <- function(input, output){
           labs(x = "Date",
                y = "Water Table Depth (cm)")
       }
-        
-        print(plot)
-        dev.off()
+      
+      print(plot)
+      dev.off()
       
     },
     
@@ -286,7 +323,7 @@ server <- function(input, output){
       write.csv(Dataset(), file, row.names = FALSE)
     }
   )
- 
+  
 }
 
 # Run the application 
