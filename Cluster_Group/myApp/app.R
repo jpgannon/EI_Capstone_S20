@@ -190,7 +190,8 @@ server <- function(input, output){
     
     well_data <- Dataset()
     
-    if(input$Well_2_Plot == FALSE){
+    if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
+      
       ggplot() +
         geom_point(data = well_data,
                    mapping = aes(x = date.,
@@ -202,8 +203,7 @@ server <- function(input, output){
         scale_y_reverse() +
         labs(x = "Date",
              y = "Water Table Depth (cm)")
-      
-      if(input$filling_choice == "Linear-Regression"){
+    } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
         
         fit <- lm(well_2 ~ date., data = well_data)
         
@@ -217,8 +217,7 @@ server <- function(input, output){
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
           labs(caption = paste("R-squared = ", summary(fit)$r.squared))
-      }
-    } else{  # plotting well 1 and well 2
+      }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
       
       ggplot() +
         geom_point(data = well_data,  # well 1
@@ -235,8 +234,7 @@ server <- function(input, output){
         scale_y_reverse() +
         labs(x = "Date",
              y = "Water Table Depth (cm)")
-      
-      if(input$filling_choice == "Linear-Regression"){
+    } else{
         
         fit <- lm(well_2 ~ date., data = well_data)
         
@@ -254,9 +252,9 @@ server <- function(input, output){
           ylab("Water Table Depth (cm)") +
           xlab("Date") +
           labs(caption = paste("R-squared = ", summary(fit)$r.squared))
-      }
     }
-  })
+  }
+  )
   
   # table with water depth and predictions results
   output$mytable = DT::renderDataTable({
@@ -278,7 +276,7 @@ server <- function(input, output){
       
       plot <- ggplot()
       
-      if(input$Well_2_Plot == FALSE){  # only plotting well 1
+      if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
         
         plot <- ggplot() +
           geom_point(data = well_data,
@@ -291,7 +289,21 @@ server <- function(input, output){
           scale_y_reverse() +
           labs(x = "Date",
                y = "Water Table Depth (cm)")
-      } else{  # plotting well 1 and well 2
+      } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
+        
+        fit <- lm(well_2 ~ date., data = well_data)
+        
+        plot <- ggplot() +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = predicted_values, 
+                                  color = is_predicted, group = 1)) +
+          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
+          scale_y_reverse() +
+          ylab("Water Table Depth (cm)") +
+          xlab("Date") +
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
+      }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
         
         plot <- ggplot() +
           geom_point(data = well_data,  # well 1
@@ -300,14 +312,32 @@ server <- function(input, output){
                                    color = is_predicted)) +
           geom_line(data = well_data,   # well 2
                     mapping = aes(x = date.,
-                                  y = well_2,
-                                  color = "grey70")) +
+                                  y = well_2),
+                    color = "grey70") +
           geom_line(data = well_data,
                     mapping = aes(x = date.,
                                   y = well_1)) +
           scale_y_reverse() +
           labs(x = "Date",
                y = "Water Table Depth (cm)")
+      } else{
+        
+        fit <- lm(well_2 ~ date., data = well_data)
+        
+        plot <- ggplot() +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = predicted_values, 
+                                  color = is_predicted, group = 1)) +
+          geom_line(data = well_data,
+                    mapping = aes(x = date.,
+                                  y = well_2),
+                    color = "grey70") +
+          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
+          scale_y_reverse() +
+          ylab("Water Table Depth (cm)") +
+          xlab("Date") +
+          labs(caption = paste("R-squared = ", summary(fit)$r.squared))
       }
       
       print(plot)
