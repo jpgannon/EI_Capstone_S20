@@ -12,9 +12,9 @@ clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
 
+# User Interface
 ui <- fluidPage(
   titlePanel("Predictive Well Data Gap Filling"),
-  
   sidebarLayout(
     sidebarPanel(
       actionButton("show", "Show App User Guide"),
@@ -42,6 +42,7 @@ ui <- fluidPage(
                       border-width:1px;
                       border-radius:5%;
                       font-size:14px;")
+      
     ),
     
     mainPanel(
@@ -52,8 +53,10 @@ ui <- fluidPage(
   
 )
 
+# Back end
 server <- function(input, output){
   
+  # Pop up box if user clicks "Show App User Guide"
   observeEvent(input$show, {
     showModal(modalDialog(
       title = "How To Use the App:",
@@ -86,12 +89,14 @@ server <- function(input, output){
     ))
   })
   
+  # Filter out Well 1 out data
   Well_1_input <- reactive({
     wells %>% 
       filter(Well == input$well1) %>% 
       as.data.frame()
   })
   
+  # Provide options for Well 2 based on Well 1 choice
   output$Well_2_Req <- renderUI({
     
     well_1_cluster <- clusters %>% 
@@ -116,12 +121,14 @@ server <- function(input, output){
     
   })
   
+  # Filter out Well 2 data
   Well_2_input <- reactive({
     wells %>% 
       filter(Well == input$Well_2_Selection) %>% 
       as.data.frame()
-  })
+    })
   
+  # Sets date range selection
   output$date_req <- renderUI({
     
     Well_1_data <- Well_1_input()
@@ -138,8 +145,10 @@ server <- function(input, output){
                    start = min_date,
                    end = max_date)
     
-  })
+    })
   
+  # Performs calculations based on chosen gap filling method
+  # Returns: data frame of combined Well 1 and Well 2 data
   Dataset <- reactive({
     
     combined <- data.frame()
@@ -148,24 +157,27 @@ server <- function(input, output){
       Well_1_data <- Well_1_input()
       Well_2_data <- Well_2_input()
       
+      # filtering out data by date range
       Well_1_data <- Well_1_data %>% 
         filter(date. >= input$dates[1] & date. <= input$dates[2])
       Well_2_data <- Well_2_data %>% 
         filter(date. >= input$dates[1] & date. <= input$dates[2])
       
+      # selecting relevant columns
       Well_1_data <- Well_1_data %>% 
         select(date., wtdepth)
       Well_2_data <- Well_2_data %>% 
         select(date., wtdepth)
       
+      # joining Well 1 and Well 2 data
       combined <- left_join(Well_2_data, Well_1_data, by = "date.")
       colnames(combined) <- c("date.", "well_2", "well_1")
       
-      # interpolation of well 1 based on well 2 data
-      combined <- combined %>% 
-        mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
-      combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE) #interpolate NAs
-      combined <- combined[,c(1, 3, 2, 4)]  # rearrange columns to make well 1 before well 2
+      # interpolation of well 1 NA values
+      combined <- combined %>%  # creates new column to separate original and interpolated values 
+        mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE)) 
+      combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)  # interpolate NA values
+      combined <- combined[,c(1, 3, 2, 4)]   # rearrange columns to make well 1 before well 2
       
     } else if (input$filling_choice == "Linear-Regression"){
       
@@ -225,10 +237,11 @@ server <- function(input, output){
     return(combined)
   })
   
-  # Calculate and plot output
-  output$Plot <- renderPlot({
+  # reactive function to create plots
+  create_plot <- reactive({
     
     well_data <- Dataset()
+    result <- ggplot()
     
     w1 <- as.character(Well_1_input()[1, 1])
     w1_hpu <- clusters %>% 
@@ -242,43 +255,55 @@ server <- function(input, output){
     # different ggplots for interpolation and linear regression situations
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       
-      ggplot() +
+      result <- ggplot() +
         geom_point(data = well_data,
                    mapping = aes(x = date.,
                                  y = well_1,
                                  color = is_predicted)) +
+        scale_color_discrete(name = "Values",
+                             labels = c("Original", "Predicted")) +
         geom_line(data = well_data,
                   mapping = aes(x = date.,
                                 y = well_1)) +
+        geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = "Date",
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
-    } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
-        
-        fit <- lm(well_2 ~ date., data = well_data)
-        
-        ggplot() +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = predicted_values, 
-                                  color = is_predicted, group = 1)) +
-          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
-          scale_y_reverse() +
-          ylab("Water Table Depth (cm)") +
-          xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
-      }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
       
-      ggplot() +
+    } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
+      
+      fit <- lm(well_2 ~ date., data = well_data)
+      
+      result <- ggplot() +
+        geom_point(data = well_data,
+                   mapping = aes(x = date.,
+                                 y = predicted_values, 
+                                 color = is_predicted)) +
+        scale_color_discrete(name = "Values",
+                             labels = c("Original", "Predicted")) +
+        geom_line(data = well_data,
+                  mapping = aes(x = date.,
+                                y = predicted_values)) +
+        scale_y_reverse() +
+        geom_hline(yintercept = 0, color = "brown") +
+        ylab("Water Table Depth (cm)") +
+        xlab("Date") +
+        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+             title = paste("Water Depth for Wells", w1, "and", w2)) +
+        theme_bw()
+      
+    }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
+      
+      result <- ggplot() +
         geom_point(data = well_data,  # well 1
                    mapping = aes(x = date.,
                                  y = well_1,
                                  color = is_predicted)) +
+        scale_color_discrete(name = "Values",
+                             labels = c("Original", "Predicted")) +
         geom_line(data = well_data,   # well 2
                   mapping = aes(x = date.,
                                 y = well_2),
@@ -286,146 +311,72 @@ server <- function(input, output){
         geom_line(data = well_data,
                   mapping = aes(x = date.,
                                 y = well_1)) +
+        geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = "Date",
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
+        theme_bw()
+      
     } else{
-        
-        fit <- lm(well_2 ~ date., data = well_data)
-        
-        ggplot() +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = predicted_values, 
-                                  color = is_predicted, group = 1)) +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = well_2),
-                    color = "grey70") +
-          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
-          scale_y_reverse() +
-          ylab("Water Table Depth (cm)") +
-          xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
+      
+      fit <- lm(well_2 ~ date., data = well_data)
+      
+      result <- ggplot() +
+        geom_point(data = well_data,
+                  mapping = aes(x = date.,
+                                y = predicted_values, 
+                                color = is_predicted)) +
+        scale_color_discrete(name = "Values",
+                             labels = c("Original", "Predicted")) +
+        geom_line(data = well_data,
+                  mapping = aes(x = date.,
+                                y = predicted_values)) +
+        geom_line(data = well_data,
+                  mapping = aes(x = date.,
+                                y = well_2),
+                  color = "grey70") +
+        geom_hline(yintercept = 0, color = "brown") +
+        scale_y_reverse() +
+        ylab("Water Table Depth (cm)") +
+        xlab("Date") +
+        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+             title = paste("Water Depth for Wells", w1, "and", w2)) +
+        theme_bw()
+      
     }
+    return(result)
+  })
+  
+  # Plot output
+  output$Plot <- renderPlot({
+    create_plot()      
   }
   )
   
-  # table with water depth and predictions results
+  # Table with water depth and predictions results
   output$mytable = DT::renderDataTable({
     
-    well_data <- Dataset()
+    well_data <- Dataset()  # get data table
     
-    # print table
-    well_data
+    well_data  # print data table
   })
   
+  # Download plot as PNG
   output$downloadplot <- downloadHandler(
     filename <- function(){
-      paste('plot', 'png', sep = ".")
+      paste('plot', 'png', sep = ".")  # format for filename
     },
-    content <- function(file){
-      png(file)
-      
-      well_data <- Dataset()
-      
-      plot <- ggplot()
-      w1 <- as.character(Well_1_input()[1, 1])
-      w1_hpu <- clusters %>% 
-        filter(Well == w1)
-      w1_hpu <- as.character(w1_hpu[1, 3])
-      w2 <- as.character(Well_2_input()[1, 1])
-      w2_hpu <- clusters %>% 
-        filter(Well == w2)
-      w2_hpu <- as.character(w2_hpu[1, 3])
-      
-      if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
-        
-        plot <- ggplot() +
-          geom_point(data = well_data,
-                     mapping = aes(x = date.,
-                                   y = well_1,
-                                   color = is_predicted)) +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = well_1)) +
-          scale_y_reverse() +
-          labs(x = "Date",
-               y = "Water Table Depth (cm)",
-               caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
-      } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
-        
-        fit <- lm(well_2 ~ date., data = well_data)
-        
-        plot <- ggplot() +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = predicted_values, 
-                                  color = is_predicted, group = 1)) +
-          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
-          scale_y_reverse() +
-          ylab("Water Table Depth (cm)") +
-          xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
-      }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
-        
-        plot <- ggplot() +
-          geom_point(data = well_data,  # well 1
-                     mapping = aes(x = date.,
-                                   y = well_1,
-                                   color = is_predicted)) +
-          geom_line(data = well_data,   # well 2
-                    mapping = aes(x = date.,
-                                  y = well_2),
-                    color = "grey70") +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = well_1)) +
-          scale_y_reverse() +
-          labs(x = "Date",
-               y = "Water Table Depth (cm)",
-               caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells", w1, "and", w2)) +
-          theme_bw()
-      } else{
-        
-        fit <- lm(well_2 ~ date., data = well_data)
-        
-        plot <- ggplot() +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = predicted_values, 
-                                  color = is_predicted, group = 1)) +
-          geom_line(data = well_data,
-                    mapping = aes(x = date.,
-                                  y = well_2),
-                    color = "grey70") +
-          geom_abline(slope = fit$coefficients[2], intercept = fit$coefficients[1]) +
-          scale_y_reverse() +
-          ylab("Water Table Depth (cm)") +
-          xlab("Date") +
-          labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-               title = paste("Water Depth for Wells ", w1, "and ", w2)) +
-          theme_bw()
-      }
-      
-      print(plot)
-      dev.off()
-      
+      content <- function(file){
+        png(file)
+        print(create_plot())
+        dev.off()
     },
-    
     contentType = "image/png"
   )
   
+  # Download data table as a csv
   output$downloaddata <- downloadHandler(
     filename = function() {"Well_1_Predicted_data.csv"}, content = function(file){
       write.csv(Dataset(), file, row.names = FALSE)
