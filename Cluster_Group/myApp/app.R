@@ -366,7 +366,7 @@ server <- function(input, output){
   # Download plot as PNG
   output$downloadplot <- downloadHandler(
     filename = function(){
-      paste(input$well1, input$Well_2_Req, '.png', sep = "")  # format for filename
+      paste(input$well1, ".png", sep = "")  # format for filename
     },
       content = function(file){
         ggsave(file, 
@@ -376,6 +376,7 @@ server <- function(input, output){
                width = 20,
                height = 10,
                dpi = 300)
+        dev.set(dev.next())
         dev.off()
     },
     contentType = "image/png"
