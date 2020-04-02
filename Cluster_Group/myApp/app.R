@@ -365,12 +365,17 @@ server <- function(input, output){
   
   # Download plot as PNG
   output$downloadplot <- downloadHandler(
-    filename <- function(){
-      paste('plot', 'png', sep = ".")  # format for filename
+    filename = function(){
+      paste(input$well1, input$Well_2_Req, '.png', sep = "")  # format for filename
     },
-      content <- function(file){
-        png(file)
-        print(create_plot())
+      content = function(file){
+        ggsave(file, 
+               plot = create_plot(), 
+               device = "png",
+               scale = 1,
+               width = 20,
+               height = 10,
+               dpi = 300)
         dev.off()
     },
     contentType = "image/png"
