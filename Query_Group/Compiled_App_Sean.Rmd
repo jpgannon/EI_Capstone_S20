@@ -63,7 +63,7 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
-#busyIndicator(text = "Calculation in progress ... ", wait = 0)
+# busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
 Row {data-height=200}
@@ -158,3 +158,6 @@ getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp) {
     return(c(wells))
 }
 ```
+
+Row {data-height=200}
+---------------------------------------------------------------------

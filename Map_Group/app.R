@@ -6,6 +6,10 @@ library(leaflet)
 library(sf)
 library(shinyWidgets)
 library(shinythemes)
+library(raster)
+library(htmltools)
+library(rgdal)
+library(leaflet.extras)
 
 
 
@@ -39,7 +43,7 @@ ui <- fluidPage(
     mainPanel(
       
       #Plots the map and graphs
-      leafletOutput("map"),
+      leafletOutput("map", width = "100%", height = 350),
       plotOutput("precplot", width = "100%", height = "150px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
@@ -72,14 +76,11 @@ server <- function(input, output, session) {
   weir <- read_csv("stream_discharge_WS3.csv")
 
   
-  #Creates widths for plots
-  p1_widths <- reactiveVal(value = NULL)
-  
   
   #creates date range
   ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
   
-  #CUpdates date range when date is selected
+  #Updates date range when date is selected
   observeEvent(input$date, {
     ranges$x <- c(input$date[1], input$date[2])
   })
@@ -145,15 +146,25 @@ server <- function(input, output, session) {
     
     
     #Filter for dates selected
-    precip_select <- filter(precip, Precip == Precip) #, DATE >= start, DATE <= end)
+    precip_select <- filter(precip, Precip == Precip)# DATE >= ranges$x[1], DATE <= ranges$x[2] ) #, DATE >= start, DATE <= end)
+    
+    #Calculates precip tota;
+    #Ptotal <- round(sum(precip_select$Precip , na.rm = TRUE),2)
+    
+    # Create text
+    #grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
+    #                          gp=gpar(col="black", fontsize=13, fontface="italic")))
     
     
     (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
         xlab("Date") +
+        scale_y_reverse()+
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
         theme_classic())
+        #annotation_custom(grob)
+    
 
   })
   
@@ -197,32 +208,54 @@ server <- function(input, output, session) {
     mutate(POINT_X = as.character(POINT_X)) %>%
     mutate(POINT_Y = as.character(POINT_Y))
   
-  
-  
   #Popup labels
   pop_ups <- c(well_labels$Well, well_labels$PipeHt, well_labels$POINT_X, well_labels$POINT_Y)
   
+  # read in raster file
+  twi <- raster('ws3cliptwid.tif')
+  
+  # read in WS3 outline (.shp) and assign coordinate system
+  ws3 <- st_read("ws3.shp")
+  ws3 <- st_transform(ws3, "+proj=longlat +datum=WGS84 +no_defs")
+    
+  
+  # remove NA's for the color scheme
+  vals <- values(na.omit(twi))
+  
+  # set twi colors for map
+  pal <- colorBin("Blues", domain = NULL, bins = 5, na.color = "transparent")
+  
+  # set color scale for legend
+  pal2 <- colorNumeric(palette = "Blues", domain = vals)
+  
+  # read in hillshade
+  ws3hill <- raster('ws3_hillshade2.tif')
+  
+  # set hillshade colors for map
+  pal_hill <- colorBin("Greys", domain = NULL, bins = 5, na.color = "transparent")
+  
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
-      addProviderTiles(providers$Esri.WorldTopoMap) %>%  
-      addCircleMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y, 
-                       weight = 1,
-                       popup = paste("Well ID:", well_labels$Well,"<br>", 
+      addProviderTiles(providers$Esri.WorldTopoMap) %>%
+      addRasterImage(twi, colors = pal, opacity = 0.5, group = "Topographic Wetness Index") %>%
+      addRasterImage(ws3hill, colors = pal_hill, opacity = 0.7, group = "Hillshade") %>%
+      addPolygons(data = ws3, color = "Black", fill = FALSE) %>%
+      addCircleMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
+                       color = "Black",
+                       popup = paste("Well ID:", well_labels$Well,"<br>",
                                      "Pipe Height:", well_labels$PipeHt, "<br>",
                                      "X Coordinate:", well_labels$POINT_X, "<br>",
                                      "Y Coordinate:", well_labels$POINT_Y),
-                       layerId = well_locations$Well,
-                       radius = 4) %>%
-      # focus map in on Hubbard Brooke's Watershed 3 / zoom level
-      setView(lng = -71.7210, lat = 43.9582, zoom = 15.5) %>%
-      
-      # add layers control 
-      addLayersControl(overlayGroups = c('Hillshade',
-                                         'Slope',
-                                         'TWI',
-                                         'NDVI'),
-                       options = layersControlOptions(collapsed = TRUE),
-                       position = 'topright')
+                       radius = 2.5) %>%
+      addLegend(position = 'topright', values = vals, pal = pal2, labFormat = labelFormat(),
+                title = "Topographic Wetness Index") %>%
+      addLayersControl(baseGroups = c("Topographic Wetness Index", "Hillshade"),
+                       options = layersControlOptions(collapsed = TRUE)) %>%
+
+      #focus map in on Hubbard Brooke's Watershed 3 / zoom level
+      setView(lng = -71.7190, lat = 43.9582, zoom = 15.2) %>%
+      addResetMapButton()
+   
   })
   
  
@@ -255,6 +288,8 @@ server <- function(input, output, session) {
  
   
 }
+
+
 
 # Runs the app
 app <- shinyApp(ui, server)
