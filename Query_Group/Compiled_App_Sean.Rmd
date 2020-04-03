@@ -12,6 +12,7 @@ runtime: shiny
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
+library(shinythemes)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
@@ -60,6 +61,9 @@ checkboxInput("selectAllWellsBox", "Select all wells in well list",
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
 
+sliderInput(inputId = "mag", "Plot text size.", min = 11, 
+            max = 24, value = 12)
+
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
 ```
@@ -85,17 +89,10 @@ renderPlot({
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
   
-  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
-  
-  # Create text
-  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, 
-                            hjust=0, gp=gpar(col="black", fontsize=13, 
-                                             fontface="italic")))
-  
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    annotation_custom(grob)
+    theme(text = element_text(size=input$mag))
 })
 ```
   

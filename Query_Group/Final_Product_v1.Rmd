@@ -61,6 +61,10 @@ checkboxInput("selectAllWellsBox", "Select all wells in well list",
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
 
+# slider for plot text size
+sliderInput(inputId = "mag", "Plot text size.", min = 10, 
+            max = 24, value = 10)
+
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
 
@@ -91,7 +95,8 @@ renderPlot({
   
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
-    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse()
+    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
+    theme(text = element_text(size=input$mag))
 })
 ```
   
@@ -155,7 +160,8 @@ output$water_level <- renderPlot({
   
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
-    xlab(element_blank()) + theme_classic()
+    xlab(element_blank()) + theme_classic() + 
+    theme(text = element_text(size=input$mag))
 })
 ```
 
@@ -171,8 +177,8 @@ renderPlot({
                                                 final_dates$x[2]))
   
   ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
-    geom_line() + theme_classic() + ylab("Discharge (liter/sec)") + 
-    xlab(element_blank())
+    geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
+    xlab(element_blank()) + theme(text = element_text(size=input$mag))
 })
 ```
 
