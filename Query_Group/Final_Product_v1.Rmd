@@ -34,7 +34,7 @@ discharge_data <- read_csv("CleanDischargeData_")
 Column {.sidebar}
 --------------------------------------------------------------------------------
   
-Explore data from watershed 3 in Hubbard Brook.
+Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date range, click and drag your mouse on the Water Level plot then double click on the resulting rectangle.
   
 ```{r}
 # make a slider widget for slope
