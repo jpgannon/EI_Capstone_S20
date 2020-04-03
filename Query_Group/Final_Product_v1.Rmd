@@ -2,6 +2,7 @@
 title: "Watershed Data Exploration Tool"
 output: 
   flexdashboard::flex_dashboard:
+    vertical_layout: scroll
     orientation: rows
     social: menu
     source_code: embed
@@ -81,7 +82,7 @@ observeEvent(input$plot_btn, {
   })
 ```
 
-Row {data-height=200}
+Row {data-height=150}
 --------------------------------------------------------------------------------
  
 ### Precipitation Plot
@@ -100,7 +101,7 @@ renderPlot({
 })
 ```
   
-Row
+Row {data-height=350}
 --------------------------------------------------------------------------------
 
 ### Water Level Plot
