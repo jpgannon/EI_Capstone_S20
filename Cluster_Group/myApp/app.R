@@ -3,7 +3,6 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(zoo)
-library(shinycssloaders)
 
 # import data
 setwd("D:/Capstone/data")
@@ -46,8 +45,8 @@ ui <- fluidPage(
     ),
     
     mainPanel(
-      plotOutput("Plot") %>% withSpinner(color = "#0dc5c1"),
-      DT::dataTableOutput("mytable") %>% withSpinner(color = "#0dc5c1")
+      plotOutput("Plot"),
+      DT::dataTableOutput("mytable")
     )
   )
   
