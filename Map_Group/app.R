@@ -1,14 +1,11 @@
 library(shiny)
 library(tidyverse)
 library(lubridate)
-library(patchwork)
 library(leaflet)
 library(sf)
-library(shinyWidgets)
 library(shinythemes)
 library(raster)
 library(htmltools)
-library(rgdal)
 library(leaflet.extras)
 
 
@@ -25,9 +22,9 @@ ui <- fluidPage(
   sidebarLayout(
     position = "left",
     sidebarPanel(
-      h5("Explore Precipiation, Streamflow, and Water Table level for watershed 3 at the Hubbard Brook Experimental Forest"),
+      h5("Precipiation, streamflow, and water table level for watershed 3 at the Hubbard Brook Experimental Forest"),
       h5(strong("Location"), "White Mountain National Forest, NH, USA"),
-      h5(strong("TO ZOOM: On any plot, click and drag and then double click. 
+      h5(strong("To Zoom: On any plot, click and drag and then double click. 
                       Double click again to zoom to full extent.")),
       
       #Creates calender to select date range
@@ -42,20 +39,21 @@ ui <- fluidPage(
     
     mainPanel(
       
+      
       #Plots the map and graphs
-      leafletOutput("map", width = "100%", height = 350),
-      plotOutput("precplot", width = "100%", height = "150px",
+      leafletOutput("map", width = "100%", height = 325),
+      plotOutput("precplot", width = "90%", height = "150px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
                    id = "plot1_brush",
                    resetOnNew = TRUE)),
-      plotOutput("wellplot", width = "100%", height = "200px",
+      plotOutput("wellplot", width = "90%", height = "200px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
                    id = "plot1_brush",
                    resetOnNew = TRUE
                  )),
-      plotOutput("weirplot",width = "100%", height = "200px",
+      plotOutput("weirplot",width = "90%", height = "200px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
                    id = "plot1_brush",
@@ -98,18 +96,16 @@ server <- function(input, output, session) {
   }
   )
   
- 
+  
  
   #Creates water table plot
   output$wellplot <- renderPlot({
+    
+    #Creates ID from text input
     ID <- strsplit(input$well_input, " ")[[1]]
     
-    #start <- input$date[1]
-    
-    #end <- input$date[2]
-
-    
-    wells <- filter(welldata, Well == ID) #, date >= start, date <= end)
+    #Filters for chosen well ID
+    wells <- filter(welldata, Well == ID) 
     
     ggplot(data = wells, mapping = aes(x = date, y = wtdepth, color = Well))+
         geom_line()+
@@ -123,70 +119,55 @@ server <- function(input, output, session) {
   })
   
  
-  #Selecting map markers
-  observeEvent(input$map_marker_click, { 
-    site <- input$map_marker_click
-    site_id <- site$id
-    updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
-  })
-  
+ 
 
-  #converts date column to match well data
-  precip <- precip %>%
-    mutate(DATE = as.POSIXct(DATE))
-  
   
   #Creates precipitation plot
   output$precplot <- renderPlot({
     
     
-    #start <- input$date[1]
+    #converts date column to match well data
+    precip <- precip %>%
+      mutate(DATE = as.POSIXct(DATE))
     
-    #end <- input$date[2]
-    
-    
-    #Filter for dates selected
-    precip_select <- filter(precip, Precip == Precip)# DATE >= ranges$x[1], DATE <= ranges$x[2] ) #, DATE >= start, DATE <= end)
-    
-    #Calculates precip tota;
-    #Ptotal <- round(sum(precip_select$Precip , na.rm = TRUE),2)
-    
-    # Create text
-    #grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
-    #                          gp=gpar(col="black", fontsize=13, fontface="italic")))
-    
-    
-    (ggplot(data = precip_select, mapping = aes(x = DATE, y = Precip))+
+    # #Initializes precip total to overall total for watershed 3
+    # Ptotal <- 83629.9
+    # 
+    # 
+    # #Filter for dates selected
+    # precip_sub <- precip %>%
+    #   filter(between((DATE), ranges$x[1], ranges$x[2]))
+    # 
+    # Ptotal <- round(sum(precip_sub$Precip, na.rm = TRUE),2)
+# 
+#     # Create text
+#     Pgrob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
+#                                 gp=gpar(col="black", fontsize=13, fontface="italic")))
+
+    (ggplot(data = precip, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
         xlab("Date") +
         scale_y_reverse()+
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
-        theme_classic())
-        #annotation_custom(grob)
+        theme_classic()) #+
+        #annotation_custom(Pgrob)
     
 
   })
-  
-  #Converts date column to match well data
-  weir <- weir %>%
-    mutate(DATE = as.POSIXct(DATE))
-  
+
   
   #Creates weir discharge plot
   output$weirplot <- renderPlot({
     
     
-    #start <- input$date[1]
+    #Converts date column to match well data
+    weir <- weir %>%
+      mutate(DATE = as.POSIXct(DATE))
     
-    #end <- input$date[2]
+
     
-    
-    #Filter for dates selected
-    weir_select <- filter(weir, Streamflow == Streamflow) #, DATE >= start, DATE <= end)
-    
-    
-    (ggplot(data = weir_select, mapping = aes(x = DATE, y = Streamflow))+
+    (ggplot(data = weir, mapping = aes(x = DATE, y = Streamflow))+
         geom_line()+
         ylab("Weir Discharge (mm)")+
         xlab("Date") +
@@ -226,7 +207,7 @@ server <- function(input, output, session) {
   pal <- colorBin("Blues", domain = NULL, bins = 5, na.color = "transparent")
   
   # set color scale for legend
-  pal2 <- colorNumeric(palette = "Blues", domain = vals)
+  pal2 <- colorNumeric(palette = "Blues", domain = vals, na.color = NA)
   
   # read in hillshade
   ws3hill <- raster('ws3_hillshade2.tif')
@@ -234,29 +215,43 @@ server <- function(input, output, session) {
   # set hillshade colors for map
   pal_hill <- colorBin("Greys", domain = NULL, bins = 5, na.color = "transparent")
   
+ 
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%
       addRasterImage(twi, colors = pal, opacity = 0.5, group = "Topographic Wetness Index") %>%
       addRasterImage(ws3hill, colors = pal_hill, opacity = 0.7, group = "Hillshade") %>%
-      addPolygons(data = ws3, color = "Black", fill = FALSE) %>%
-      addCircleMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
+      addPolylines(data = ws3, color = "Black", fill = FALSE, weight = 2, fillOpacity = 0.2) %>%
+      addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
                        popup = paste("Well ID:", well_labels$Well,"<br>",
                                      "Pipe Height:", well_labels$PipeHt, "<br>",
                                      "X Coordinate:", well_labels$POINT_X, "<br>",
                                      "Y Coordinate:", well_labels$POINT_Y),
-                       radius = 2.5) %>%
+                       radius = 7) %>%
       addLegend(position = 'topright', values = vals, pal = pal2, labFormat = labelFormat(),
-                title = "Topographic Wetness Index") %>%
-      addLayersControl(baseGroups = c("Topographic Wetness Index", "Hillshade"),
+                title = "Topographic Wetness Index", 
+                group = "Topographic Wetness Index" ) %>%
+      addLayersControl(overlayGroups = c("Topographic Wetness Index", "Hillshade"),
                        options = layersControlOptions(collapsed = TRUE)) %>%
+      hideGroup("Hillshade") %>%
 
       #focus map in on Hubbard Brooke's Watershed 3 / zoom level
-      setView(lng = -71.7190, lat = 43.9582, zoom = 15.2) %>%
+      setView(lng = -71.7170, lat = 43.9578, zoom = 15.1) %>%
+      
+      #Resets map view
       addResetMapButton()
+                          
    
   })
+  
+  #Selecting map markers
+  observeEvent(input$map_marker_click, { 
+    site <- input$map_marker_click
+    site_id <- site$id
+    updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
+  })
+  
   
  
   
@@ -267,10 +262,7 @@ server <- function(input, output, session) {
   make_df <- reactive({
     ID <- strsplit(input$well_input, " ")[[1]] #makes dataframe from user selection of data
     
-    #start <- input$date[1]
-    
-    #end <- input$date[2]
-    
+    #Filter for subset of data from user selection
     wells <- filter(welldata, Well == ID, date >= ranges$x[1], date <= ranges$x[2])
     
   })
