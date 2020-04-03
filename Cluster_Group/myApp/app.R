@@ -3,10 +3,9 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(zoo)
-#library(shinycssloaders)
 
 # import data
-setwd("C:/Users/user/Desktop/Spring 2019/FREC4444/App-Test/Data")
+setwd("D:/Capstone/data")
 wells <- read_csv("oneHourSummary.csv")
 clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
@@ -28,36 +27,33 @@ ui <- fluidPage(
       checkboxInput("Well_2_Plot", "Check to view Well 2 plot data in grey", FALSE),
       downloadButton("downloadplot", "Download Plot!",
                      style = "background-color:#0dc5c1;
-                     color:#FFFFFF;
-                     border-color:#D1D1D1;
-                     border-style:none;
-                     border-width:1px;
-                     border-radius:5%;
-                     font-size:14px;"),
+                      color:#FFFFFF;
+                      border-color:#D1D1D1;
+                      border-style:none;
+                      border-width:1px;
+                      border-radius:5%;
+                      font-size:14px;"),
       downloadButton("downloaddata", "Download Data!",
                      style = "background-color:#0dc5c1;
-                     color:#FFFFFF;
-                     border-color:#D1D1D1;
-                     border-style:none;
-                     border-width:1px;
-                     border-radius:5%;
-                     font-size:14px;")
+                      color:#FFFFFF;
+                      border-color:#D1D1D1;
+                      border-style:none;
+                      border-width:1px;
+                      border-radius:5%;
+                      font-size:14px;")
       
-      ),
-    
+    ),
     mainPanel(
       plotOutput("Plot"),
       DT::dataTableOutput("mytable")
     )
-      ),
+  ),
   tags$style(type="text/css",
              ".shiny-output-error { visibility: hidden; }",
              ".shiny-output-error:before { visibility: hidden; }")
-  
-    )
+)
 
 # Back end
-
 server <- function(input, output){
   
   # Pop up box if user clicks "Show App User Guide"
@@ -65,38 +61,38 @@ server <- function(input, output){
     showModal(modalDialog(
       title = "How To Use the App:",
       HTML("1. Select which gap filling method you would like to use <br> 
-           Tip: Is the gap a smaller time period? <br>
-           If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
-           If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
-           <br>
-           2. Select Well 1 <br>
-           What well has missing data that you are trying to fill with synthetic data? <br>
-           <br>
-           3. Select Well 2 <br>
-           Tip: Are you using the Interpolation method? <br>
-           If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
-           If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
-           <br>
-           4. Select the Date range for the missing data <br>
-           You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
-           <br>
-           5. View the plot <br>
-           If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
-           <br>
-           6. View the datatable (below the plot) <br>
-           This allows the user to view the raw data being plotted <br>
-           <br>
-           7. If desired, click the button to Download Plot <br>
-           <br>
-           8. If desired, click the button to Download Data"
+      Tip: Is the gap a smaller time period? <br>
+             If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
+             If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
+             <br>
+             2. Select Well 1 <br>
+             What well has missing data that you are trying to fill with synthetic data? <br>
+             <br>
+             3. Select Well 2 <br>
+             Tip: Are you using the Interpolation method? <br>
+             If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
+             If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
+             <br>
+             4. Select the Date range for the missing data <br>
+             You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
+             <br>
+             5. View the plot <br>
+             If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
+             <br>
+             6. View the datatable (below the plot) <br>
+             This allows the user to view the raw data being plotted <br>
+             <br>
+             7. If desired, click the button to Download Plot <br>
+             <br>
+             8. If desired, click the button to Download Data"
       )
-      ))
+    ))
   })
   
   # Filter out Well 1 out data
   Well_1_input <- reactive({
     req(wells) %>% 
-      filter(Well == req(input$well1)) %>% 
+      filter(Well == input$well1) %>% 
       as.data.frame()
   })
   
@@ -108,26 +104,27 @@ server <- function(input, output){
       select(Cluster) %>% 
       as.numeric()
     
-    if(req(well_1_cluster) == 5){
-      well_2_options <- req(clusters) %>%
+    if(well_1_cluster == 5){
+      well_2_options <- req(clusters) %>% 
+        filter(Well != req(input$well1)) %>% 
         select(Well, Cluster) %>% 
         as.list()
     }else{
       well_2_options <- req(clusters) %>% 
-        filter(Cluster == req(well_1_cluster)) %>%
+        filter(Cluster == well_1_cluster,
+               Well != req(input$well1)) %>%
         select(Well, Cluster) %>% 
         as.list()
     }
     
     selectInput("Well_2_Selection", label = h5("Select Well 2:"),
-                choices = well_2_options,
-                selected = 1)
+                choices = well_2_options)
     
   })
   
   # Filter out Well 2 data
   Well_2_input <- reactive({
-    req(wells) %>% 
+    wells %>% 
       filter(Well == req(input$Well_2_Selection)) %>% 
       as.data.frame()
   })
@@ -157,6 +154,7 @@ server <- function(input, output){
     
     combined <- data.frame()
     
+    # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
       Well_1_data <- Well_1_input()
       Well_2_data <- Well_2_input()
@@ -183,6 +181,7 @@ server <- function(input, output){
       combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)  # interpolate NA values
       combined <- combined[,c(1, 3, 2, 4)]   # rearrange columns to make well 1 before well 2
       
+      # Linear regression gap filling    
     } else if (input$filling_choice == "Linear-Regression"){
       
       Well_1_data <- Well_1_input()
@@ -211,9 +210,9 @@ server <- function(input, output){
       num_well1 <- nrow(combined)
       
       for (i in 1:num_well1) {
-        if (is.na(req(combined$Well_1_level[i])) == TRUE) {
+        if (is.na(combined$Well_1_level[i]) == TRUE) {
           combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
-        } else if (req(combined$Well_1_level[i]) == -99) {
+        } else if (combined$Well_1_level[i] == -99) {
           combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
         }
         else {
@@ -241,7 +240,8 @@ server <- function(input, output){
     return(combined)
   })
   
-  # reactive function to create plots
+  # Reactive function to create plots each time well selection changes
+  # Returns: ggplot object for plotting or export
   create_plot <- reactive({
     
     well_data <- Dataset()
@@ -256,7 +256,7 @@ server <- function(input, output){
       filter(Well == w2)
     w2_hpu <- as.character(w2_hpu[1, 3])
     
-    # different ggplots for interpolation and linear regression situations
+    # Plotting interpolation with just well 1 plot
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       
       result <- ggplot() +
@@ -277,6 +277,7 @@ server <- function(input, output){
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
+      # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
       
       fit <- lm(well_2 ~ date., data = well_data)
@@ -295,11 +296,13 @@ server <- function(input, output){
         geom_hline(yintercept = 0, color = "brown") +
         ylab("Water Table Depth (cm)") +
         xlab("Date") +
-        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", 
+                             w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
-    }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
+      # Plotting well 1 with interpolated data and original well 2 data
+    }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  
       
       result <- ggplot() +
         geom_point(data = well_data,  # well 1
@@ -323,6 +326,7 @@ server <- function(input, output){
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
+      # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
       
       fit <- lm(well_2 ~ date., data = well_data)
@@ -393,7 +397,7 @@ server <- function(input, output){
     }
   )
   
-  }
+}
 
 # Run the application 
 shinyApp(ui = ui, server = server)
