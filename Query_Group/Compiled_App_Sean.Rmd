@@ -13,49 +13,39 @@ runtime: shiny
 library(shiny)
 library(tidyverse)
 
-wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 
-                 'I9', 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06',
-                 'JD07', 'JD08', 'JD10', 'JD11', 'JD12', 'JD13', 'JD14',
-                 'JD15', 'JD16', 'JD17', 'JD18', 'JD19', 'JD20', 'JD21',
-                 'JD22', 'JD23', 'JD24', 'JD25', 'JD26', 'JD27', 'JD28',
-                 'JD29', 'JD30', 'JD31', 'K1', 'K10', 'K11', 'K12', 
-                 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 'K7D', 
-                 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
+                 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
+                 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15', 'JD16', 'JD17',
+                 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25',
+                 'JD26', 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 
+                 'K11', 'K12', 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 
+                 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
 precip_data <- read_csv("PrecipSnow_BarData.csv")
 well_data <- read_csv("sept2011Data.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 hpu_data <- read_csv("hpuDataClean.csv")
+discharge_data <- read_csv("CleanDischargeData_")
 ```
 
 Column {.sidebar}
----------------------------------------------------------------------
+--------------------------------------------------------------------------------
   
 Explore data from watershed 3 in Hubbard Brook.
   
 ```{r}
-# determine min and max for slope data
-minSlope <- min(slope_asp_data$Slope)
-maxSlope <- max(slope_asp_data$Slope, na.rm = TRUE)
-
 # make a slider widget for slope
-sliderInput("slope", "Select a slope range", 
-            min = minSlope, max = maxSlope,
-            value = c(minSlope, maxSlope), ticks = TRUE, dragRange = TRUE)
-
-# determine min and max for aspect data
-minAsp <- min(slope_asp_data$Aspect)
-maxAsp <- max(slope_asp_data$Aspect, na.rm = TRUE)
+sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
+            value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Select an aspect range", 
-            min = minAsp, max = maxAsp,
-            value = c(minAsp, maxAsp), ticks = TRUE, dragRange = TRUE)
+sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
+            value = c(0.055854, 344.6115), ticks = TRUE, dragRange = TRUE)
 
 # Select multiple wells based on well names
-selectInput("select_wells", "Select Well(s):", 
-            choices = wellNames, multiple = TRUE)
+selectInput("select_wells", "Select Well(s):", choices = wellNames, 
+            multiple = TRUE)
 
 # Select a date range
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
@@ -63,7 +53,6 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
-# busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
 Row {data-height=200}
@@ -72,22 +61,11 @@ Row {data-height=200}
 ### Precip Plot
 
 ```{r}
-# Updates the well input when plot button is clicked
-final_datesP <- reactiveValues(x = NULL)
-
-# Updates the date range input when plot button is clicked
-observeEvent(input$plot_btn, {
-  final_datesP$x <- c(input$date_range[1], input$date_range[2])
-  })
-
 # renders the plot
 renderPlot({
-  
   ggplot(data = precip_data, aes(fill = Type, y = Value, x = DATE)) + 
-  geom_bar(position = "stack", stat = "identity") + 
-    theme_classic() +
-    coord_cartesian(xlim = as.Date(final_datesP$x, coord_cartesian), expand = FALSE)
-
+  geom_bar(position = "stack", stat = "identity") + theme_classic() +
+  coord_cartesian(xlim = as.Date(final_dates$x, coord_cartesian), expand = FALSE)
 })
 ```
   
