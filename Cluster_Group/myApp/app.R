@@ -106,18 +106,19 @@ server <- function(input, output){
     
     if(well_1_cluster == 5){
       well_2_options <- clusters %>%
+        filter(Well != input$well1) %>% 
         select(Well, Cluster) %>% 
         as.list()
     }else{
     well_2_options <- clusters %>% 
-      filter(Cluster == well_1_cluster) %>%
+      filter(Cluster == well_1_cluster,
+             Well != input$well1) %>%
       select(Well, Cluster) %>% 
       as.list()
     }
     
     selectInput("Well_2_Selection", label = h5("Select Well 2:"),
-                choices = well_2_options,
-                selected = 1)
+                choices = well_2_options)
     
   })
   
