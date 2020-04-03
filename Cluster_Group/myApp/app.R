@@ -105,16 +105,16 @@ server <- function(input, output){
       as.numeric()
     
     if(well_1_cluster == 5){
-      well_2_options <- clusters %>%
+      well_2_options <- clusters %>% 
         filter(Well != input$well1) %>% 
         select(Well, Cluster) %>% 
         as.list()
     }else{
-    well_2_options <- clusters %>% 
-      filter(Cluster == well_1_cluster,
-             Well != input$well1) %>%
-      select(Well, Cluster) %>% 
-      as.list()
+      well_2_options <- clusters %>% 
+        filter(Cluster == well_1_cluster,
+               Well != input$well1) %>%
+        select(Well, Cluster) %>% 
+        as.list()
     }
     
     selectInput("Well_2_Selection", label = h5("Select Well 2:"),
@@ -127,7 +127,7 @@ server <- function(input, output){
     wells %>% 
       filter(Well == input$Well_2_Selection) %>% 
       as.data.frame()
-    })
+  })
   
   # Sets date range selection
   output$date_req <- renderUI({
@@ -146,7 +146,7 @@ server <- function(input, output){
                    start = min_date,
                    end = max_date)
     
-    })
+  })
   
   # Performs calculations based on chosen gap filling method
   # Returns: data frame of combined Well 1 and Well 2 data
@@ -154,6 +154,7 @@ server <- function(input, output){
     
     combined <- data.frame()
     
+    # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
       Well_1_data <- Well_1_input()
       Well_2_data <- Well_2_input()
@@ -179,7 +180,8 @@ server <- function(input, output){
         mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE)) 
       combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)  # interpolate NA values
       combined <- combined[,c(1, 3, 2, 4)]   # rearrange columns to make well 1 before well 2
-      
+    
+    # Linear regression gap filling    
     } else if (input$filling_choice == "Linear-Regression"){
       
       Well_1_data <- Well_1_input()
@@ -238,7 +240,8 @@ server <- function(input, output){
     return(combined)
   })
   
-  # reactive function to create plots
+  # Reactive function to create plots each time well selection changes
+  # Returns: ggplot object for plotting or export
   create_plot <- reactive({
     
     well_data <- Dataset()
@@ -253,7 +256,7 @@ server <- function(input, output){
       filter(Well == w2)
     w2_hpu <- as.character(w2_hpu[1, 3])
     
-    # different ggplots for interpolation and linear regression situations
+    # Plotting interpolation with just well 1 plot
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       
       result <- ggplot() +
@@ -274,6 +277,7 @@ server <- function(input, output){
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
+    # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
       
       fit <- lm(well_2 ~ date., data = well_data)
@@ -292,11 +296,13 @@ server <- function(input, output){
         geom_hline(yintercept = 0, color = "brown") +
         ylab("Water Table Depth (cm)") +
         xlab("Date") +
-        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", 
+                             w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
-    }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  # plotting well 1 and well 2
+    # Plotting well 1 with interpolated data and original well 2 data
+    }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  
       
       result <- ggplot() +
         geom_point(data = well_data,  # well 1
@@ -320,15 +326,16 @@ server <- function(input, output){
              title = paste("Water Depth for Wells", w1, "and", w2)) +
         theme_bw()
       
+    # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
       
       fit <- lm(well_2 ~ date., data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
-                  mapping = aes(x = date.,
-                                y = predicted_values, 
-                                color = is_predicted)) +
+                   mapping = aes(x = date.,
+                                 y = predicted_values, 
+                                 color = is_predicted)) +
         scale_color_discrete(name = "Values",
                              labels = c("Original", "Predicted")) +
         geom_line(data = well_data,
@@ -369,16 +376,16 @@ server <- function(input, output){
     filename = function(){
       paste(input$well1, ".png", sep = "")  # format for filename
     },
-      content = function(file){
-        ggsave(file, 
-               plot = create_plot(), 
-               device = "png",
-               scale = 1,
-               width = 20,
-               height = 10,
-               dpi = 300)
-        dev.set(dev.next())
-        dev.off()
+    content = function(file){
+      ggsave(file, 
+             plot = create_plot(), 
+             device = "png",
+             scale = 1,
+             width = 20,
+             height = 10,
+             dpi = 300)
+      dev.set(dev.next())
+      dev.off()
     },
     contentType = "image/png"
   )
