@@ -80,7 +80,7 @@ observeEvent(input$plot_btn, {
 Row {data-height=200}
 --------------------------------------------------------------------------------
  
-### Precip Plot
+### Precipitation Plot
 
 ```{r}
 # renders the plot
@@ -162,7 +162,7 @@ output$water_level <- renderPlot({
 Row {data-height=200}
 --------------------------------------------------------------------------------
 
-### Discharge
+### Discharge Plot
 
 ```{r}
 renderPlot({
