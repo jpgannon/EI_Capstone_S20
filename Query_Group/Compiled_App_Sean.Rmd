@@ -66,6 +66,10 @@ sliderInput(inputId = "mag", "Plot text size.", min = 11,
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
+
+downloadButton("downloadData", "Download") 
+
+
 ```
 
 ```{r}
@@ -75,6 +79,16 @@ final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01",
 observeEvent(input$plot_btn, {
   final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
   })
+ 
+ downloadHandler(
+    filename = function() {
+      paste(input$dataset, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(datasetInput(), file, row.names = FALSE)
+      # code adapted from https://shiny.rstudio.com/articles/download.html
+      }
+  )
 ```
 
 Row {data-height=200}
@@ -158,6 +172,10 @@ output$water_level <- renderPlot({
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
     xlab(element_blank()) + theme_classic()
 })
+
+ output$table <- renderTable({
+    datasetInput()
+  })
 ```
 
 Row {data-height=200}
