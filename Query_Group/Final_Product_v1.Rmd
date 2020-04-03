@@ -12,6 +12,7 @@ runtime: shiny
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
+library(shinysky)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
@@ -62,6 +63,9 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
+
+# loading indicator for the impatients
+busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
 ```{r}

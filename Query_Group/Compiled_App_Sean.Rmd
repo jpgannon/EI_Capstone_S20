@@ -85,9 +85,17 @@ renderPlot({
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
   
+  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
+  
+  # Create text
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, 
+                            hjust=0, gp=gpar(col="black", fontsize=13, 
+                                             fontface="italic")))
+  
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
-    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse()
+    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
+    annotation_custom(grob)
 })
 ```
   
