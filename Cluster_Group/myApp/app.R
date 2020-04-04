@@ -2,7 +2,6 @@ library(DT)
 library(shiny)
 library(tidyverse)
 library(lubridate)
-library(zoo)
 
 # import data
 setwd("D:/Capstone/data")
@@ -23,7 +22,10 @@ ui <- fluidPage(
       selectInput("well1", label = h5("Select Well One:"),
                   choices = wellsList),
       uiOutput("Well_2_Req"),
-      uiOutput("date_req"),
+      dateRangeInput("date", "Select a Date Range:",
+                     start = "2007-08-10",
+                     end = "2018-10-08",
+                     format = "yyyy-mm-dd"),
       checkboxInput("Well_2_Plot", "Check to view Well 2 plot data in grey", FALSE),
       downloadButton("downloadplot", "Download Plot!",
                      style = "background-color:#0dc5c1;
@@ -44,7 +46,9 @@ ui <- fluidPage(
       
     ),
     mainPanel(
-      plotOutput("Plot"),
+      plotOutput("Plot",
+                 dblclick = "dblclick",
+                 brush = brushOpts(id = "date_brush")),
       DT::dataTableOutput("mytable")
     )
   ),
@@ -79,12 +83,15 @@ server <- function(input, output){
              5. View the plot <br>
              If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
              <br>
-             6. View the datatable (below the plot) <br>
+             6. Brushing to zoom in on plot <br>
+             Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
+             <br>
+             7. View the datatable (below the plot) <br>
              This allows the user to view the raw data being plotted <br>
              <br>
-             7. If desired, click the button to Download Plot <br>
+             8. If desired, click the button to Download Plot <br>
              <br>
-             8. If desired, click the button to Download Data"
+             9. If desired, click the button to Download Data"
       )
     ))
   })
@@ -129,23 +136,13 @@ server <- function(input, output){
       as.data.frame()
   })
   
-  # Sets date range selection
-  output$date_req <- renderUI({
-    
-    Well_1_data <- Well_1_input()
-    Well_2_data <- Well_2_input()
-    
-    min_date <- "2007-08-10"
-    max_date <- "2018-10-08"
-    
-    h4("Date Selection")
-    dateRangeInput("dates",
-                   label = h5("Select the date range for the missing data:"),
-                   min = min_date,
-                   max = max_date,
-                   start = min_date,
-                   end = max_date)
-    
+  # Reactive value to store min and max dates
+  date_range <- reactiveValues(x = as.POSIXct(c(start = "2008-08-10",
+                                                end = "2018-10-08")))
+  
+  # Changes reactive date_range based on input from date UI
+  observeEvent(input$date,{
+    date_range$x <- as.POSIXct(c(input$date[1], input$date[2]))
   })
   
   # Performs calculations based on chosen gap filling method
@@ -161,9 +158,9 @@ server <- function(input, output){
       
       # filtering out data by date range
       Well_1_data <- Well_1_data %>% 
-        filter(date. >= input$dates[1] & date. <= input$dates[2])
+        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
       Well_2_data <- Well_2_data %>% 
-        filter(date. >= input$dates[1] & date. <= input$dates[2])
+        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
       
       # selecting relevant columns
       Well_1_data <- Well_1_data %>% 
@@ -188,9 +185,9 @@ server <- function(input, output){
       Well_2_data <- Well_2_input()
       
       Well_1_data <- Well_1_data %>%
-        filter(date. >= input$dates[1] & date. <= input$dates[2])
+        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
       Well_2_data <- Well_2_data %>%
-        filter(date. >= input$dates[1] & date. <= input$dates[2])
+        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
       
       combined <- left_join(Well_2_data, Well_1_data, by = "date.")
       
@@ -244,9 +241,19 @@ server <- function(input, output){
   # Returns: ggplot object for plotting or export
   create_plot <- reactive({
     
+    # Getting data from reactive function
     well_data <- Dataset()
-    result <- ggplot()
+    result <- ggplot()  # Initializing empty ggplot
     
+    # Getting start and end dates to put on plot axis
+    start_date <- well_data %>% 
+      arrange(date.)
+    start_date <- start_date[1, 1]
+    end_date <- well_data %>% 
+      arrange(date.)
+    end_date <- end_date[1, 1]
+    
+    # Getting well 1 and well 2 HPUs to put in plot caption
     w1 <- as.character(Well_1_input()[1, 1])
     w1_hpu <- clusters %>% 
       filter(Well == w1)
@@ -271,10 +278,11 @@ server <- function(input, output){
                                 y = well_1)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
-        labs(x = "Date",
+        labs(x = NULL,
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2)) +
+             title = paste("Water Depth for Wells", w1, "and", w2),
+             subtitle = paste(start_date, "to", end_date)) +
         theme_bw()
       
       # Plotting linear regression with just well 1 plot  
@@ -294,11 +302,12 @@ server <- function(input, output){
                                 y = predicted_values)) +
         scale_y_reverse() +
         geom_hline(yintercept = 0, color = "brown") +
-        ylab("Water Table Depth (cm)") +
-        xlab("Date") +
-        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", 
+        labs(x = NULL,
+             y = "Water Table Depth (cm)",
+             caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", 
                              w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2)) +
+             title = paste("Water Depth for Wells", w1, "and", w2),
+             subtitle = paste(start_date, "to", end_date)) +
         theme_bw()
       
       # Plotting well 1 with interpolated data and original well 2 data
@@ -320,10 +329,11 @@ server <- function(input, output){
                                 y = well_1)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
-        labs(x = "Date",
+        labs(x = NULL,
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2)) +
+             title = paste("Water Depth for Wells", w1, "and", w2),
+             subtitle =paste(start_date, "to", end_date)) +
         theme_bw()
       
       # Plotting well 1 with data filled using linear regression and original well 2 data  
@@ -347,14 +357,26 @@ server <- function(input, output){
                   color = "grey70") +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
-        ylab("Water Table Depth (cm)") +
-        xlab("Date") +
-        labs(caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2)) +
+        labs(x = NULL,
+             y = "Water Table Depth (cm)",
+             caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
+             title = paste("Water Depth for Wells", w1, "and", w2),
+             subtitle = paste(start_date, "to", end_date)) +
         theme_bw()
       
     }
-    return(result)
+    return(result)  # return ggplot object and graphing settings
+  })
+  
+  # Observes for brushing to change date_range
+  observeEvent(input$dblclick,{
+    brush <- input$date_brush
+    if (!is.null(brush)){
+      date_range$x <- c(brush$xmin, brush$xmax)
+    } else{
+      date_range$x <- as.POSIXct(c(input$date[1], input$date[2]))
+    }
+    
   })
   
   # Plot output
@@ -366,7 +388,7 @@ server <- function(input, output){
   # Table with water depth and predictions results
   output$mytable = DT::renderDataTable({
     
-    well_data <- Dataset()  # get data table
+    well_data <- Dataset()  # get data table from reactive function
     
     well_data  # print data table
   })
@@ -378,7 +400,7 @@ server <- function(input, output){
     },
     content = function(file){
       ggsave(file, 
-             plot = create_plot(), 
+             plot = create_plot(),  # settings for size and dpi of exported plot
              device = "png",
              scale = 1,
              width = 20,
