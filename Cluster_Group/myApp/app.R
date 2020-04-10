@@ -2,6 +2,7 @@ library(DT)
 library(shiny)
 library(tidyverse)
 library(lubridate)
+library(plotly)
 
 # import data
 setwd("D:/Capstone/data")
@@ -283,7 +284,7 @@ server <- function(input, output){
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
-        theme_bw()
+        theme_bw(base_size = 20)
       
       # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
@@ -308,7 +309,7 @@ server <- function(input, output){
                              w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
-        theme_bw()
+        theme_bw(base_size = 20)
       
       # Plotting well 1 with interpolated data and original well 2 data
     }else if (input$Well_2_Plot == TRUE & input$filling_choice == "Interpolation"){  
@@ -334,7 +335,7 @@ server <- function(input, output){
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2),
              subtitle =paste(start_date, "to", end_date)) +
-        theme_bw()
+        theme_bw(base_size = 20)
       
       # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
@@ -362,7 +363,7 @@ server <- function(input, output){
              caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
              title = paste("Water Depth for Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
-        theme_bw()
+        theme_bw(base_size = 20)
       
     }
     return(result)  # return ggplot object and graphing settings
