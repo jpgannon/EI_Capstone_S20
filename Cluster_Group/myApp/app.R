@@ -48,8 +48,9 @@ ui <- fluidPage(
     mainPanel(
       plotOutput("Plot",
                  dblclick = "dblclick",
-                 brush = brushOpts(id = "date_brush")),
-      DT::dataTableOutput("mytable")
+                 brush = brushOpts(id = "date_brush"),
+                 height = "600px")
+#      DT::dataTableOutput("mytable")
     )
   ),
   tags$style(type="text/css",
@@ -250,7 +251,7 @@ server <- function(input, output){
       arrange(date.)
     start_date <- start_date[1, 1]
     end_date <- well_data %>% 
-      arrange(date.)
+      arrange(desc(date.))
     end_date <- end_date[1, 1]
     
     # Getting well 1 and well 2 HPUs to put in plot caption
@@ -265,7 +266,6 @@ server <- function(input, output){
     
     # Plotting interpolation with just well 1 plot
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
-      
       result <- ggplot() +
         geom_point(data = well_data,
                    mapping = aes(x = date.,
@@ -386,12 +386,12 @@ server <- function(input, output){
   )
   
   # Table with water depth and predictions results
-  output$mytable = DT::renderDataTable({
+ # output$mytable = DT::renderDataTable({
     
-    well_data <- Dataset()  # get data table from reactive function
+  #  well_data <- Dataset()  # get data table from reactive function
     
-    well_data  # print data table
-  })
+   # well_data  # print data table
+#  })
   
   # Download plot as PNG
   output$downloadplot <- downloadHandler(
