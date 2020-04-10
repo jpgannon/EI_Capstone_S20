@@ -4,6 +4,7 @@ library(tidyverse)
 library(lubridate)
 library(plotly)
 library(png)
+library(zoo)
 
 # import data
 setwd("D:/Capstone/data")
@@ -11,16 +12,16 @@ wells <- read_csv("oneHourSummary.csv")
 clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
-#data_availability_chart <- readPNG("availability_of_data_all_wells.png")
 
 # User Interface
 ui <- fluidPage(
   titlePanel("Predictive Well Data Gap Filling"),
   sidebarLayout(
     sidebarPanel(
-      actionButton("show", "Show App User Guide"),
+      actionButton("appGuide", "Show App User Guide"),
       actionButton("FAQ", "Show App FAQ"),
-#      actionButton("dataAvailability", "Show Data Availability"),
+      actionButton("dataAvailability", "Show Data Availability"),
+      actionButton("wellPlots", "Show Well Plot"),
       selectInput("filling_choice", label = h5("Select a gap filling method:"),
                   choices = prediction_choices),
       h3("Well Selection"),
@@ -60,7 +61,7 @@ ui <- fluidPage(
 server <- function(input, output){
   
   # Pop up box if user clicks "Show App User Guide"
-  observeEvent(input$show, {
+  observeEvent(input$appGuide, {
     showModal(modalDialog(
       title = "How To Use the App:",
       HTML("<b> 1. Select which gap filling method you would like to use </b> <br> 
@@ -203,6 +204,14 @@ server <- function(input, output){
       )
     ))
   })
+  
+  # Pop up box if user clicks "Show Data Availability"
+  observeEvent(input$dataAvailability, {
+    output$Plot <- renderImage({
+      list(src = "availability_of_data_all_wells.png")
+    }, deleteFile = FALSE)
+  })
+  
   
   # Filter out Well 1 out data
   Well_1_input <- reactive({
@@ -501,7 +510,13 @@ server <- function(input, output){
   }
   )
   
-# Table with water depth and predictions results
+  observeEvent(input$wellPlots, {
+    output$Plot <- renderPlot({
+      create_plot()
+    })
+  })
+  
+  # Table with water depth and predictions results
   output$mytable = DT::renderDataTable({
     req(input$data_table_viewer == TRUE)
     well_data <- Dataset()  # get data table from reactive function
