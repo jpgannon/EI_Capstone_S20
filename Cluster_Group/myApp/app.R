@@ -3,6 +3,7 @@ library(shiny)
 library(tidyverse)
 library(lubridate)
 library(plotly)
+library(png)
 
 # import data
 setwd("D:/Capstone/data")
@@ -10,6 +11,7 @@ wells <- read_csv("oneHourSummary.csv")
 clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
 prediction_choices <- c("Interpolation", "Linear-Regression")
+#data_availability_chart <- readPNG("availability_of_data_all_wells.png")
 
 # User Interface
 ui <- fluidPage(
@@ -17,6 +19,8 @@ ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       actionButton("show", "Show App User Guide"),
+      actionButton("FAQ", "Show App FAQ"),
+#      actionButton("dataAvailability", "Show Data Availability"),
       selectInput("filling_choice", label = h5("Select a gap filling method:"),
                   choices = prediction_choices),
       h3("Well Selection"),
@@ -27,15 +31,8 @@ ui <- fluidPage(
                      start = "2007-08-10",
                      end = "2018-10-08",
                      format = "yyyy-mm-dd"),
-      checkboxInput("Well_2_Plot", "Check to view Well 2 plot data in grey", FALSE),
-      downloadButton("downloadplot", "Download Plot!",
-                     style = "background-color:#0dc5c1;
-                      color:#FFFFFF;
-                      border-color:#D1D1D1;
-                      border-style:none;
-                      border-width:1px;
-                      border-radius:5%;
-                      font-size:14px;"),
+      checkboxInput("Well_2_Plot", "View Well 2 plot data in grey", FALSE),
+      checkboxInput("data_table_viewer", "View Data Table", FALSE),
       downloadButton("downloaddata", "Download Data!",
                      style = "background-color:#0dc5c1;
                       color:#FFFFFF;
@@ -50,8 +47,8 @@ ui <- fluidPage(
       plotOutput("Plot",
                  dblclick = "dblclick",
                  brush = brushOpts(id = "date_brush"),
-                 height = "600px")
-#      DT::dataTableOutput("mytable")
+                 height = "600px"),
+      DT::dataTableOutput("mytable")
     )
   ),
   tags$style(type="text/css",
@@ -66,34 +63,143 @@ server <- function(input, output){
   observeEvent(input$show, {
     showModal(modalDialog(
       title = "How To Use the App:",
-      HTML("1. Select which gap filling method you would like to use <br> 
-      Tip: Is the gap a smaller time period? <br>
+      HTML("<b> 1. Select which gap filling method you would like to use </b> <br> 
+      Tip: Is the gap a smaller time period? (Less than 1 Week) <br>
              If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
              If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
              <br>
-             2. Select Well 1 <br>
+             <b> 2. Select Well 1 </b> <br>
              What well has missing data that you are trying to fill with synthetic data? <br>
              <br>
-             3. Select Well 2 <br>
+             <b> 3. Select Well 2 </b> <br>
              Tip: Are you using the Interpolation method? <br>
              If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
              If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
              <br>
-             4. Select the Date range for the missing data <br>
+             <b> 4. Select the Date range for the missing data </b> <br>
              You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
              <br>
-             5. View the plot <br>
+             <b> 5. View the plot </b> <br>
              If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
              <br>
-             6. Brushing to zoom in on plot <br>
+             <b> 6. Brushing to zoom in on plot </b> <br>
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
-             7. View the datatable (below the plot) <br>
+             <b> 7. View the datatable (below the plot) </b> <br>
              This allows the user to view the raw data being plotted <br>
              <br>
-             8. If desired, click the button to Download Plot <br>
+             <b> 8. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
              <br>
-             9. If desired, click the button to Download Data"
+             <b> 9. If desired, click the button to Download Data </b>"
+      )
+    ))
+  })
+  
+  # Pop up box if user clicks "Show App User Guide"
+  observeEvent(input$FAQ, {
+    showModal(modalDialog(
+      title = "Application FAQ & Background",
+      HTML("<b> 1. Terms Definition </b> <br> 
+              <b> Well 1: </b> A well containing missing data for a certain time period. <br>
+              
+              <b> Well 2: </b> Any well that the user selects in order to perform a linear regression. <br>
+              This well is not needed or used during the interpolation gap filling process, and is dynamically limited 
+              by the app so the user can only select a well that is from within the same cluster as Well 1.<br>
+              
+              <b> Interpolation: </b> A method of predictive gap filling that relies only on Well 1 data. 
+              It uses two data points, the one directly preceding and the one directly following a gap in the 
+              data, and populates the gap with what the algorithm expects the data to look like between the two 
+              data points. <br>
+              
+              <b> Linear Regression: </b> A method of predictive gap filling that relies on two inputs: a Well 1 and a
+              Well 2. This method then graphs all of the original Well 1 data that it has, and when it encounters a gap
+              in the data, it performs a linear regression between Well 1 and Well 2 data, then uses that linear regression 
+              formula to determine, based on the behavior of the Well 2 data, what the Well 1 data would look like in that gap. <br>
+              The premise of this is as follows: when there is a gap, look to a well, within the same cluster, that doesn’t have a gap, 
+              see what that second well is doing, and predict what Well 1 (which behaves similarly due to it falling in the same cluster) 
+              is doing during that gap. <br>
+              <br>
+            <b> 2. Hubbard Brook Experimental Forest Background </b> <br>
+             This Well data is sourced from Watershed 3, located within the Hubbard Brook Experimental Forest. <br>
+             'The Hubbard Brook Ecosystem Study, founded in 1963 by G.E. Likens, F.H. Bormann, R.S. Pierce, and N.M. Johnson, is
+             among the longest running and most comprehensive ecosystem studies in the world. Since the establishment of the 3,160-hectare
+             (~7,800-acre) Hubbard Brook Experimental Forest in the White Mountains of New Hampshire by the USDA Forest Service in 1955, 
+             researchers have used the site to study the hydrology, ecology, and management of northern forests. Hubbard Brook scientists 
+             pioneered the small watershed approach to understanding forest ecosystems and advanced the use of whole-ecosystem manipulations 
+             to quantify the response of forests to disturbance. Hubbard Brook research has figured strongly in the national debates on air 
+             pollution, carbon emissions, and forest management.' (https://hubbardbrook.org/about) <br>
+             <br>
+             <b> For more information about the Hubbard Brook Experimental Forest, visit: </b> <br>
+             https://hubbardbrook.org/ <br>
+             <b> To find additional data from the Hubbard Brook Experimental Forest, visit their Data Catalog: </b> <br>
+             https://hubbardbrook.org/d/hubbard-brook-data-catalog <br>
+             <br>
+            <b> 3. Which method should I use to predict the Synthetic Data?</b> <br>
+             Our app is designed to use the results of a cluster anaylsis in order to determine which wells behave
+             similarly enough to be used to predict missing data within each other's datasets. There are two methods
+              that we use to make these predictions: <b> Interpolation </b> and <b>Linear Regression </b>. <br>
+             <br>
+             As stated in the Terms Definitions section, Interpolation only uses Well 1 to predict missing data within
+              Well 1 data. It estimates the data in gaps based on the last known data point and the next available known
+               data point. Because of this, it is recommended that this method is used for shorter gaps in data (less than one week). <br>
+             Linear Regression relies on Well 2 to predict missing data in Well 1. Because of that, it can be used to fill both
+              short (less than one week) and longer gaps (greater than one week). <br>
+             <br>
+             <b> 4. Which method is better to use to predict data? </b> <br>
+             Both methods are viable, but to determine which method should be used first consider the how long the gap in the data 
+             is. If it is longer than one week, interpolation will be less reliable, and it may be safer to use Linear Regression. 
+             <br> In order to ensure the best fit, explore several different wells to determine which well has the highest R^2 Value. This
+              can demonstrate which wells behave more similarly. <br> In order to achieve the highest R^2 Value, it is recommended to trim the
+               selected date range down as small as possible, while still achieving your goal. <br>
+             <br>
+             <b> 5. Explain the Cluster Analysis </b> <br>
+             In order to determine the optimal clustering method for clustering the Water Table well data, we tested two contrasting clustering methods, 
+             and then compared the results. <br>
+             The first clustering method was <b> Dynamic Time Warping (DTW) Clustering </b> <br>
+             This method is a Hierarchical clustering method, and it calculates the distance from relative peaks to relative peaks and relative lows to 
+             relative lows in time series. This allows for comparing time series with irregular time axis, such as the Water Table, however it is more 
+             computationally intense than other methods <br>
+             <br>
+             The second method was <b> K-Shape Clustering </b> <br>
+             This method is a Partitional Clustering Method and it is a derivative of K-Means clustering, optimized for time series clustering.<br>
+             It iteratively calculates centroids based on Shape Based Distance calculation between time series, and clusters objects based on distance to centroids. 
+             It also automatically z-normalizes data for calculation, but it z-normalizes based on entire data set, instead of individual objects. It requires
+              a predefined cluster amount, and similar to DTW, it allows for clustering of time series with irregular time axis. In addition, it is less computationally intense. <br>
+              <br>
+              
+              Using R, we implemented K-Shape and DTW algorithms over four time frames to cluster 40 selected wells that had sufficient data, based on the raw hourly summary and 
+              the normalized hourly summary data. <br> 
+              <br> We performed the analysis over two longer time frames and two short time frames that had high precipitation. We then generated results for both algorithms based 
+              on all four time frames, for both data sets, with k = 3 to k = 10 to determine what number of clusters would be ideal, in addition to what algorithm, data set, and 
+              time frame should be used to obtain optimal results.
+              <br> 
+              <br> To determine what combination of algorithm, data set, time frame, and cluster amount would produce the ideal clusters, Internal Cluster Validity Index (CVI) 
+              Analysis was used. In particular, the Silhouette Index was used as a measure of how similar wells in a particular cluster were to each other, and how different 
+              they were to wells from other clusters. <br>
+              <br> To determine what clustering algorithm was optimal for creating clusters that best represented the different soil classes that the wells belong to, External 
+              Cluster Validity Analysis was performed for each algorithm, time frame, and data set, but with the number of clusters kept to 6, because there were 6 different 
+              soil HPU classes represented in the 40 wells chosen for the analysis. Rand Index was chosen as the CVI metric for success to determine which combination of variables
+              best represented the soil classes. <br>
+              <br>  <b> Results: </b> <br>
+              Dynamic Time Warping generally outperformed K-Shape when based on the raw data set, and the results were mixed when based on the normalized data set. The highest 
+              performing algorithm run resulted from Dynamic Time Warping with 4 clusters over 1-1-2012 to 6-1-2012 based on the raw data set. This test produced a Silhouette 
+              Index of 0.62. <i> The results from this cluster analysis will be the clusters used in the gap filling application because it produced the most distinct clusters, 
+              which will be ideal in generating synthetic data based on similar wells. </i> <br>
+              <br> The most favorable Rand Index outcome resulted from the K-Shape algorithm performed over 8-9-12 to 8-11-12 based on the raw data set. This run generated a Rand Index value
+              of 0.76. Notably, this algorithm was able to cluster the wells that belong to the “Typical” soil HPU class into the same generated cluster.  The most favorable 
+              outcome based on the normalized data set also occurred under the same set of conditions, and resulted in a Rand Index of 0.73.  <br>
+              <br> DTW generally underperformed at creating clusters that matched the properties of the soil HPU classes K-shape was better at creating clusters that matched the
+              soil HPU classes when the algorithm was performed over shorter precipitation events, indicating that the algorithm was able to detect and classify based on the water 
+              retention properties of the soil classes.<br>
+
+            <br>
+             <b> 6. Who made the app and why was it made? </b> <br>
+             We're glad you asked! This app was made in conjunction with two other apps for Virginia Tech's Spring 2020 Senior Capstone project for students in
+              the Environmental Informatics major. The professor overseeing the project was Dr. J.P. Gannon. For our Capstone project, our class was approached
+               and requested to make three apps that allowed for better data processing, subsetting, and visualization of water table data from Watershed 3 in
+                the Hubbard Brook Experimental Forest. <br>
+                This app was made by: <br>
+                <b> Tri Le, Robert Coulter, Lily Chen, and Lauren Boesch </b>"
       )
     ))
   })
@@ -107,34 +213,35 @@ server <- function(input, output){
   
   # Provide options for Well 2 based on Well 1 choice
   output$Well_2_Req <- renderUI({
+    req(clusters, input$well1)
     
-    well_1_cluster <- req(clusters) %>% 
-      filter(Well == req(input$well1)) %>% 
+    well_1_cluster <- clusters %>% 
+      filter(Well == input$well1) %>% 
       select(Cluster) %>% 
       as.numeric()
     
     if(well_1_cluster == 5){
-      well_2_options <- req(clusters) %>% 
-        filter(Well != req(input$well1)) %>% 
+      well_2_options <- clusters %>% 
+        filter(Well != input$well1) %>% 
         select(Well, Cluster) %>% 
         as.list()
     }else{
-      well_2_options <- req(clusters) %>% 
+      well_2_options <- clusters %>% 
         filter(Cluster == well_1_cluster,
-               Well != req(input$well1)) %>%
+               Well != input$well1) %>%
         select(Well, Cluster) %>% 
         as.list()
     }
     
     selectInput("Well_2_Selection", label = h5("Select Well 2:"),
                 choices = well_2_options)
-    
   })
   
   # Filter out Well 2 data
   Well_2_input <- reactive({
+    req(input$Well_2_Selection)
     wells %>% 
-      filter(Well == req(input$Well_2_Selection)) %>% 
+      filter(Well == input$Well_2_Selection) %>% 
       as.data.frame()
   })
   
@@ -179,6 +286,9 @@ server <- function(input, output){
         mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE)) 
       combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)  # interpolate NA values
       combined <- combined[,c(1, 3, 2, 4)]   # rearrange columns to make well 1 before well 2
+      combined <- combined %>% 
+        mutate(is_predicted = ifelse(is_predicted == TRUE, "Predicted", "Measured"))
+      colnames(combined) <- c("Date", "Well_1_Water_Depth", "Well_2_Water_Depth", "Measured_or_Predicted")
       
       # Linear regression gap filling    
     } else if (input$filling_choice == "Linear-Regression"){
@@ -232,9 +342,14 @@ server <- function(input, output){
         }
       }
       
-      combined <- plyr::rename(combined, c(Well_2_level = "well_2", Well_1_level = "well_1"))
-      combined <- combined %>% 
-        select(date., well_1, well_2, is_predicted, predicted_values)
+      combined <- plyr::rename(combined, c(Well_2_level = "Well_2_Water_Depth", 
+                                           date. = "Date",
+                                           is_predicted = "Measured_or_Predicted",
+                                           predicted_values = "Well_1_Water_Depth"))
+      
+      combined <- combined %>%
+        mutate(Measured_or_Predicted = ifelse(Measured_or_Predicted == FALSE, "Measured", "Predicted")) %>% 
+        select(Date, Well_1_Water_Depth, Well_2_Water_Depth, Measured_or_Predicted)
     }
     return(combined)
   })
@@ -249,10 +364,10 @@ server <- function(input, output){
     
     # Getting start and end dates to put on plot axis
     start_date <- well_data %>% 
-      arrange(date.)
+      arrange(Date)
     start_date <- start_date[1, 1]
     end_date <- well_data %>% 
-      arrange(desc(date.))
+      arrange(desc(Date))
     end_date <- end_date[1, 1]
     
     # Getting well 1 and well 2 HPUs to put in plot caption
@@ -269,14 +384,14 @@ server <- function(input, output){
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = date.,
-                                 y = well_1,
-                                 color = is_predicted)) +
+                   mapping = aes(x = Date,
+                                 y = Well_1_Water_Depth,
+                                 color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
-                             labels = c("Original", "Predicted")) +
+                             labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = date.,
-                                y = well_1)) +
+                  mapping = aes(x = Date,
+                                y = Well_1_Water_Depth)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = NULL,
@@ -289,18 +404,18 @@ server <- function(input, output){
       # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
       
-      fit <- lm(well_2 ~ date., data = well_data)
+      fit <- lm(Well_2_Water_Depth ~ Date, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = date.,
-                                 y = predicted_values, 
-                                 color = is_predicted)) +
+                   mapping = aes(x = Date,
+                                 y = Well_1_Water_Depth, 
+                                 color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
-                             labels = c("Original", "Predicted")) +
+                             labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = date.,
-                                y = predicted_values)) +
+                  mapping = aes(x = Date,
+                                y = Well_1_Water_Depth)) +
         scale_y_reverse() +
         geom_hline(yintercept = 0, color = "brown") +
         labs(x = NULL,
@@ -316,18 +431,18 @@ server <- function(input, output){
       
       result <- ggplot() +
         geom_point(data = well_data,  # well 1
-                   mapping = aes(x = date.,
-                                 y = well_1,
-                                 color = is_predicted)) +
+                   mapping = aes(x = Date,
+                                 y = Well_1_Water_Depth,
+                                 color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
-                             labels = c("Original", "Predicted")) +
+                             labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,   # well 2
-                  mapping = aes(x = date.,
-                                y = well_2),
+                  mapping = aes(x = Date,
+                                y = Well_2_Water_Depth),
                   color = "grey70") +
         geom_line(data = well_data,
-                  mapping = aes(x = date.,
-                                y = well_1)) +
+                  mapping = aes(x = Date,
+                                y = Well_1_Water_Depth)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = NULL,
@@ -340,21 +455,21 @@ server <- function(input, output){
       # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
       
-      fit <- lm(well_2 ~ date., data = well_data)
+      fit <- lm(Well_2_Water_Depth ~ Date, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = date.,
-                                 y = predicted_values, 
-                                 color = is_predicted)) +
+                   mapping = aes(x = Date,
+                                 y = Well_1_Water_Depth, 
+                                 color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
-                             labels = c("Original", "Predicted")) +
+                             labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = date.,
-                                y = predicted_values)) +
+                  mapping = aes(x = Date,
+                                y = Well_1_Water_Depth)) +
         geom_line(data = well_data,
-                  mapping = aes(x = date.,
-                                y = well_2),
+                  mapping = aes(x = Date,
+                                y = Well_2_Water_Depth),
                   color = "grey70") +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
@@ -386,32 +501,13 @@ server <- function(input, output){
   }
   )
   
-  # Table with water depth and predictions results
- # output$mytable = DT::renderDataTable({
+# Table with water depth and predictions results
+  output$mytable = DT::renderDataTable({
+    req(input$data_table_viewer == TRUE)
+    well_data <- Dataset()  # get data table from reactive function
     
-  #  well_data <- Dataset()  # get data table from reactive function
-    
-   # well_data  # print data table
-#  })
-  
-  # Download plot as PNG
-  output$downloadplot <- downloadHandler(
-    filename = function(){
-      paste(input$well1, ".png", sep = "")  # format for filename
-    },
-    content = function(file){
-      ggsave(file, 
-             plot = create_plot(),  # settings for size and dpi of exported plot
-             device = "png",
-             scale = 1,
-             width = 20,
-             height = 10,
-             dpi = 300)
-      dev.set(dev.next())
-      dev.off()
-    },
-    contentType = "image/png"
-  )
+    well_data  # print data table
+  })
   
   # Download data table as a csv
   output$downloaddata <- downloadHandler(
