@@ -269,16 +269,40 @@ server <- function(input, output){
     
     combined <- data.frame()
     
+    Well_1_data <- Well_1_input()
+    Well_2_data <- Well_2_input()
+    
+    Well_1_data <- Well_1_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    Well_2_data <- Well_2_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    
+    # Adding NAs to fill in blanks/gaps for well_1
+    start_date <- Well_1_data %>% 
+      arrange(date.) %>% 
+      select(date.)
+    start_date <- start_date[1, 1]
+    end_date <- Well_1_data %>% 
+      arrange(desc(date.)) %>% 
+      select(date.)
+    end_date <- end_date[1, 1]
+    
+    # Converting tibble to POSIXct class
+    start_date <- as.vector(t(start_date))
+    end_date <- as.vector(t(end_date))
+    start_date <- as.POSIXct(start_date, origin = "1970-01-01:00:00:00")
+    end_date <- as.POSIXct(end_date, origin = "1970-01-01:00:00:00")
+    
+    # Making full sequence of hourly dates from start to end of well 1 data
+    all_times <- seq(start_date, end_date, by = "hour")
+    all_times_frame <- data.frame(all_times)  # Converting seq vector to data frame class
+    colnames(all_times_frame) <- "date."  # Renaming column to "date." to match well date column name
+    
+    # Joining data to have all dates from start to end of well 1 date
+    Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
+    
     # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
-      Well_1_data <- Well_1_input()
-      Well_2_data <- Well_2_input()
-      
-      # filtering out data by date range
-      Well_1_data <- Well_1_data %>% 
-        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-      Well_2_data <- Well_2_data %>% 
-        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
       
       # selecting relevant columns
       Well_1_data <- Well_1_data %>% 
@@ -287,7 +311,7 @@ server <- function(input, output){
         select(date., wtdepth)
       
       # joining Well 1 and Well 2 data
-      combined <- left_join(Well_2_data, Well_1_data, by = "date.")
+      combined <- right_join(Well_2_data, Well_1_data, by = "date.")
       colnames(combined) <- c("date.", "well_2", "well_1")
       
       # interpolation of well 1 NA values
@@ -302,15 +326,7 @@ server <- function(input, output){
       # Linear regression gap filling    
     } else if (input$filling_choice == "Linear-Regression"){
       
-      Well_1_data <- Well_1_input()
-      Well_2_data <- Well_2_input()
-      
-      Well_1_data <- Well_1_data %>%
-        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-      Well_2_data <- Well_2_data %>%
-        filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-      
-      combined <- left_join(Well_2_data, Well_1_data, by = "date.")
+      combined <- full_join(Well_2_data, Well_1_data, by = "date.")
       
       combined <- plyr::rename(combined, c(wtdepth.x = "Well_2_level", wtdepth.y = "Well_1_level"))
       
