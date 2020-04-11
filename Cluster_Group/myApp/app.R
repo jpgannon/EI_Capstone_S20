@@ -301,6 +301,7 @@ server <- function(input, output){
     # Joining data to have all dates from start to end of well 1 date
     Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
     
+    
     # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
       
