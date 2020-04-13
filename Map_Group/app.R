@@ -7,6 +7,7 @@ library(shinythemes)
 library(raster)
 library(htmltools)
 library(leaflet.extras)
+#library(rgdal)
 
 
 
@@ -35,13 +36,21 @@ ui <- fluidPage(
                 value = "JD29"),
       
       # Download Button
-      downloadButton("downloadData", "Download")),
+      downloadButton("downloadData", "Download"),
+      
+      #plots the map
+      leafletOutput("map"),
+      
+      width = 6
+      )),
+    
+    
     
     mainPanel(
       
       
-      #Plots the map and graphs
-      leafletOutput("map", width = "100%", height = 325),
+      #Plots the graphs
+
       plotOutput("precplot", width = "90%", height = "150px",
                  dblclick = "plot1_dblclick",
                  brush = brushOpts(
@@ -66,7 +75,7 @@ ui <- fluidPage(
 #define server logic to draw line plot
 server <- function(input, output, session) {
   
-  setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
+  setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
   
   #Read in data
   welldata <- read_csv("welldatahourly.csv") 
@@ -198,7 +207,7 @@ server <- function(input, output, session) {
   # read in WS3 outline (.shp) and assign coordinate system
   ws3 <- st_read("ws3.shp")
   ws3 <- st_transform(ws3, "+proj=longlat +datum=WGS84 +no_defs")
-    
+
   
   # remove NA's for the color scheme
   vals <- values(na.omit(twi))
@@ -213,7 +222,7 @@ server <- function(input, output, session) {
   ws3hill <- raster('ws3_hillshade2.tif')
   
   # set hillshade colors for map
-  pal_hill <- colorBin("Greys", domain = NULL, bins = 5, na.color = "transparent")
+  pal_hill <- colorBin("Greys", domain = NULL, bins = 5, na.color = NA)
   
  
   output$map <- renderLeaflet({
@@ -228,13 +237,15 @@ server <- function(input, output, session) {
                                      "Pipe Height:", well_labels$PipeHt, "<br>",
                                      "X Coordinate:", well_labels$POINT_X, "<br>",
                                      "Y Coordinate:", well_labels$POINT_Y),
-                       radius = 7) %>%
+                       radius = 4,
+                       fillOpacity = 0.4,
+                       stroke = FALSE) %>%
       addLegend(position = 'topright', values = vals, pal = pal2, labFormat = labelFormat(),
                 title = "Topographic Wetness Index", 
                 group = "Topographic Wetness Index" ) %>%
       addLayersControl(overlayGroups = c("Topographic Wetness Index", "Hillshade"),
                        options = layersControlOptions(collapsed = TRUE)) %>%
-      hideGroup("Hillshade") %>%
+      hideGroup(c("Hillshade", "Topographic Wetness Index")) %>%
 
       #focus map in on Hubbard Brooke's Watershed 3 / zoom level
       setView(lng = -71.7170, lat = 43.9578, zoom = 15.1) %>%
@@ -245,7 +256,7 @@ server <- function(input, output, session) {
    
   })
   
-  #Selecting map markers
+  #Selecting map markers to retrieve well ID
   observeEvent(input$map_marker_click, { 
     site <- input$map_marker_click
     site_id <- site$id
