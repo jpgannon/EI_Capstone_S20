@@ -39,49 +39,46 @@ ui <- fluidPage(
       downloadButton("downloadData", "Download"),
       
       #plots the map
-      leafletOutput("map"),
-      
-      width = 6
-      )),
+      leafletOutput("map")),
+  
+  
+  
+  mainPanel(
     
     
+    #Plots the graphs
     
-    mainPanel(
-      
-      
-      #Plots the graphs
-
-      plotOutput("precplot", width = "90%", height = "150px",
-                 dblclick = "plot1_dblclick",
-                 brush = brushOpts(
-                   id = "plot1_brush",
-                   resetOnNew = TRUE)),
-      plotOutput("wellplot", width = "90%", height = "200px",
-                 dblclick = "plot1_dblclick",
-                 brush = brushOpts(
-                   id = "plot1_brush",
-                   resetOnNew = TRUE
-                 )),
-      plotOutput("weirplot",width = "90%", height = "200px",
-                 dblclick = "plot1_dblclick",
-                 brush = brushOpts(
-                   id = "plot1_brush",
-                   resetOnNew = TRUE))
-      
-      
-    )))
+    plotOutput("precplot", width = "90%", height = "150px",
+               dblclick = "plot1_dblclick",
+               brush = brushOpts(
+                 id = "plot1_brush",
+                 resetOnNew = TRUE)),
+    plotOutput("wellplot", width = "90%", height = "200px",
+               dblclick = "plot1_dblclick",
+               brush = brushOpts(
+                 id = "plot1_brush",
+                 resetOnNew = TRUE
+               )),
+    plotOutput("weirplot",width = "90%", height = "200px",
+               dblclick = "plot1_dblclick",
+               brush = brushOpts(
+                 id = "plot1_brush",
+                 resetOnNew = TRUE))
+    
+    
+  )))
 
 
 #define server logic to draw line plot
 server <- function(input, output, session) {
   
-  setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
+  #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
   
   #Read in data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
-
+  
   
   
   #creates date range
@@ -106,7 +103,7 @@ server <- function(input, output, session) {
   )
   
   
- 
+  
   #Creates water table plot
   output$wellplot <- renderPlot({
     
@@ -117,19 +114,19 @@ server <- function(input, output, session) {
     wells <- filter(welldata, Well == ID) 
     
     ggplot(data = wells, mapping = aes(x = date, y = wtdepth, color = Well))+
-        geom_line()+
-        scale_y_reverse()+
-        ylab("Water Table Depth (cm)")+
-        xlab("Date") +
-        coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
-        theme_classic()+
-        theme(legend.position = "bottom")
-
+      geom_line()+
+      scale_y_reverse()+
+      ylab("Water Table Depth (cm)")+
+      xlab("Date") +
+      coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
+      theme_classic()+
+      theme(legend.position = "bottom")
+    
   })
   
- 
- 
-
+  
+  
+  
   
   #Creates precipitation plot
   output$precplot <- renderPlot({
@@ -148,11 +145,11 @@ server <- function(input, output, session) {
     #   filter(between((DATE), ranges$x[1], ranges$x[2]))
     # 
     # Ptotal <- round(sum(precip_sub$Precip, na.rm = TRUE),2)
-# 
-#     # Create text
-#     Pgrob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
-#                                 gp=gpar(col="black", fontsize=13, fontface="italic")))
-
+    # 
+    #     # Create text
+    #     Pgrob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
+    #                                 gp=gpar(col="black", fontsize=13, fontface="italic")))
+    
     (ggplot(data = precip, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
@@ -160,11 +157,11 @@ server <- function(input, output, session) {
         scale_y_reverse()+
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
         theme_classic()) #+
-        #annotation_custom(Pgrob)
+    #annotation_custom(Pgrob)
     
-
+    
   })
-
+  
   
   #Creates weir discharge plot
   output$weirplot <- renderPlot({
@@ -174,7 +171,7 @@ server <- function(input, output, session) {
     weir <- weir %>%
       mutate(DATE = as.POSIXct(DATE))
     
-
+    
     
     (ggplot(data = weir, mapping = aes(x = DATE, y = Streamflow))+
         geom_line()+
@@ -182,11 +179,11 @@ server <- function(input, output, session) {
         xlab("Date") +
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
         theme_classic())
-      
+    
     
   })
   
-
+  
   # Load the txt file for mapping
   well_locations <- read_csv("well_locationsDD.txt")
   
@@ -207,7 +204,7 @@ server <- function(input, output, session) {
   # read in WS3 outline (.shp) and assign coordinate system
   ws3 <- st_read("ws3.shp")
   ws3 <- st_transform(ws3, "+proj=longlat +datum=WGS84 +no_defs")
-
+  
   
   # remove NA's for the color scheme
   vals <- values(na.omit(twi))
@@ -224,7 +221,7 @@ server <- function(input, output, session) {
   # set hillshade colors for map
   pal_hill <- colorBin("Greys", domain = NULL, bins = 5, na.color = NA)
   
- 
+  
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%
@@ -246,14 +243,14 @@ server <- function(input, output, session) {
       addLayersControl(overlayGroups = c("Topographic Wetness Index", "Hillshade"),
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c("Hillshade", "Topographic Wetness Index")) %>%
-
+      
       #focus map in on Hubbard Brooke's Watershed 3 / zoom level
       setView(lng = -71.7170, lat = 43.9578, zoom = 15.1) %>%
       
       #Resets map view
       addResetMapButton()
-                          
-   
+    
+    
   })
   
   #Selecting map markers to retrieve well ID
@@ -264,7 +261,7 @@ server <- function(input, output, session) {
   })
   
   
- 
+  
   
   
   
@@ -288,7 +285,7 @@ server <- function(input, output, session) {
       write.csv(make_df(), file, row.names = FALSE)
     })
   
- 
+  
   
 }
 
@@ -297,4 +294,3 @@ server <- function(input, output, session) {
 # Runs the app
 app <- shinyApp(ui, server)
 runApp(app)
- 
