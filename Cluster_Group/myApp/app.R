@@ -430,7 +430,7 @@ server <- function(input, output){
       # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
       
-      fit <- lm(Well_2_Water_Depth ~ Date, data = well_data)
+      fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
@@ -481,7 +481,7 @@ server <- function(input, output){
       # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
       
-      fit <- lm(Well_2_Water_Depth ~ Date, data = well_data)
+      fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
