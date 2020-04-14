@@ -7,7 +7,7 @@ library(png)
 library(zoo)
 
 # import data
-setwd("D:/Capstone/data")
+setwd("C:/Capstone/Data")
 wells <- read_csv("oneHourSummary.csv")
 clusters <- read_csv("clusters_with_HPU.csv")
 wellsList <- as.list(unique(wells$Well))
