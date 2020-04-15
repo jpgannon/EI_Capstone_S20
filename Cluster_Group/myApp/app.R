@@ -21,7 +21,7 @@ ui <- fluidPage(
       actionButton("appGuide", "Show App User Guide"),
       actionButton("FAQ", "Show App FAQ"),
       actionButton("dataAvailability", "Show Data Availability"),
-      actionButton("wellPlots", "Show Well Plot"),
+      actionButton("scatter", "Show Scatterplot"),
       selectInput("filling_choice", label = h5("Select a gap filling method:"),
                   choices = prediction_choices),
       h3("Well Selection"),
@@ -41,8 +41,8 @@ ui <- fluidPage(
                       border-style:none;
                       border-width:1px;
                       border-radius:5%;
-                      font-size:14px;")
-      
+                      font-size:14px;"),
+      plotOutput("sidePlot")
     ),
     mainPanel(
       plotOutput("Plot",
@@ -70,7 +70,7 @@ server <- function(input, output){
              If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
              <br>
              <b> 2. If desired, the \"Show Data Availability\" button will display an image of times where each well has data. Blue areas are where the well has data, red areas are NA values, and blanks are times where data is missing entirely.
-             To view the well water table depth plots, click the \"Show Well Plot\" button.
+             \"Show Scatterplot\" will display a plot showing the relationship between Well 1 and Well 2 water depths.
              <br> <br>
              <b> 3. Select Well 1 </b> <br>
              What well has missing data that you are trying to fill with synthetic data? <br>
@@ -207,14 +207,6 @@ server <- function(input, output){
       )
     ))
   })
-  
-  # Pop up box if user clicks "Show Data Availability"
-  observeEvent(input$dataAvailability, {
-    output$Plot <- renderImage({
-      list(src = "availability_of_data_all_wells.png")
-    }, deleteFile = FALSE)
-  })
-  
   
   # Filter out Well 1 out data
   Well_1_input <- reactive({
@@ -530,11 +522,66 @@ server <- function(input, output){
   }
   )
   
-  observeEvent(input$wellPlots, {
-    output$Plot <- renderPlot({
-      create_plot()
-    })
+  observeEvent(input$dataAvailability, {
+    output$sidePlot <- renderImage({
+      list(src = "data_availability.png")
+    }, deleteFile = FALSE)
   })
+  
+  observeEvent(input$scatter, {
+    output$sidePlot <- renderPlot({
+    
+    Well_1_data <- Well_1_input()
+    Well_2_data <- Well_2_input()
+    
+    #names of wells
+    w1 <- Well_1_data[1, 1] %>% 
+      as.character()
+    w2 <- Well_2_data[1, 1] %>% 
+      as.character()
+      
+    
+    Well_1_data <- Well_1_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    Well_2_data <- Well_2_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    
+    # Adding NAs to fill in blanks/gaps for well_1
+    start_date <- Well_1_data %>% 
+      arrange(date.) %>% 
+      select(date.)
+    start_date <- start_date[1, 1]
+    end_date <- Well_1_data %>% 
+      arrange(desc(date.)) %>% 
+      select(date.)
+    end_date <- end_date[1, 1]
+    
+    # Converting tibble to POSIXct class
+    start_date <- as.vector(t(start_date))
+    end_date <- as.vector(t(end_date))
+    start_date <- as.POSIXct(start_date, origin = "1970-01-01:00:00:00")
+    end_date <- as.POSIXct(end_date, origin = "1970-01-01:00:00:00")
+    
+    # Making full sequence of hourly dates from start to end of well 1 data
+    all_times <- seq(start_date, end_date, by = "hour")
+    all_times_frame <- data.frame(all_times)  # Converting seq vector to data frame class
+    colnames(all_times_frame) <- "date."  # Renaming column to "date." to match well date column name
+    
+    # Joining data to have all dates from start to end of well 1 date
+    Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
+    combined <- full_join(Well_1_data, Well_2_data, by = "date.")
+    combined <- combined %>% 
+      select(date., wtdepth.x, wtdepth.y)
+    colnames(combined) <- c("date.", "Well_1_Water_Depth", "Well_2_Water_Depth")
+    ggplot(data = combined,
+           mapping = aes(x = Well_1_Water_Depth,
+                         y = Well_2_Water_Depth)) +
+      geom_point(size = 0.5) +
+      labs(x = w1,
+           y = w2) +
+      theme_bw()
+  })
+    })
   
   # Table with water depth and predictions results
   output$mytable = DT::renderDataTable({
