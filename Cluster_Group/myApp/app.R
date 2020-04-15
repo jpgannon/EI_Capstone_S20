@@ -69,29 +69,32 @@ server <- function(input, output){
              If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
              If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
              <br>
-             <b> 2. Select Well 1 </b> <br>
+             <b> 2. If desired, the \"Show Data Availability\" button will display an image of times where each well has data. Blue areas are where the well has data, red areas are NA values, and blanks are times where data is missing entirely.
+             To view the well water table depth plots, click the \"Show Well Plot\" button.
+             <br> <br>
+             <b> 3. Select Well 1 </b> <br>
              What well has missing data that you are trying to fill with synthetic data? <br>
              <br>
-             <b> 3. Select Well 2 </b> <br>
+             <b> 4. Select Well 2 </b> <br>
              Tip: Are you using the Interpolation method? <br>
              If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
              If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
              <br>
-             <b> 4. Select the Date range for the missing data </b> <br>
+             <b> 5. Select the Date range for the missing data </b> <br>
              You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
              <br>
-             <b> 5. View the plot </b> <br>
+             <b> 6. View the plot </b> <br>
              If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
              <br>
-             <b> 6. Brushing to zoom in on plot </b> <br>
+             <b> 7. Brushing to zoom in on plot </b> <br>
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
-             <b> 7. View the datatable (below the plot) </b> <br>
+             <b> 8. View the datatable (below the plot) </b> <br>
              This allows the user to view the raw data being plotted <br>
              <br>
-             <b> 8. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
+             <b> 9. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
              <br>
-             <b> 9. If desired, click the button to Download Data </b>"
+             <b> 10. If desired, click the button to Download Data </b>"
       )
     ))
   })
