@@ -23,8 +23,13 @@ ui <- fluidPage(
   sidebarLayout(
     position = "left",
     sidebarPanel(
+      actionButton("appGuide", "Show App User Guide"),
       h5("Precipiation, streamflow, and water table level for watershed 3 at the Hubbard Brook Experimental Forest"),
-      h5(strong("Location"), "White Mountain National Forest, NH, USA"),
+      h5(strong("Location:"), "White Mountain National Forest, NH, USA"),
+      h5(strong("Forest type:"), "Northern hardwood"),
+      h5(strong("Area:"), "42.4 ha"),
+      h5(strong("Elevation:"), "527-732 m"),
+      h5(strong("Climate:"), "Long, cold winters and mild to cool summers"),
       h5(strong("To Zoom: On any plot, click and drag and then double click. 
                       Double click again to zoom to full extent.")),
       
@@ -72,14 +77,16 @@ ui <- fluidPage(
 #define server logic to draw line plot
 server <- function(input, output, session) {
   
-  #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
+  setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
   
   #Read in data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
   
-  
+  #renames level column for clarity when downloading csv of data
+  welldata <- welldata %>%
+    rename(level_w_pipe_height = level)
   
   #creates date range
   ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
@@ -230,10 +237,7 @@ server <- function(input, output, session) {
       addPolylines(data = ws3, color = "Black", fill = FALSE, weight = 2, fillOpacity = 0.2) %>%
       addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
-                       popup = paste("Well ID:", well_labels$Well,"<br>",
-                                     "Pipe Height:", well_labels$PipeHt, "<br>",
-                                     "X Coordinate:", well_labels$POINT_X, "<br>",
-                                     "Y Coordinate:", well_labels$POINT_Y),
+                       popup = paste("Well ID:", well_labels$Well,"<br>"),
                        radius = 4,
                        fillOpacity = 0.4,
                        stroke = FALSE) %>%
@@ -260,10 +264,7 @@ server <- function(input, output, session) {
     updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
   })
   
-  
-  
-  
-  
+ 
   
   #Downloadable csv of selected dataset
   
@@ -275,6 +276,8 @@ server <- function(input, output, session) {
     
   })
   output$results <- renderTable({make_df()})
+  
+  
   
   #Downloads subset of well data
   output$downloadData <- downloadHandler(
@@ -294,3 +297,4 @@ server <- function(input, output, session) {
 # Runs the app
 app <- shinyApp(ui, server)
 runApp(app)
+
