@@ -75,7 +75,8 @@ busyIndicator(text = "Calculation in progress ... ", wait = 0)
 
 ```{r}
 final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
-                                               end = "2018-01-10"), tryFormats = "%m-%d-%Y"))
+                                               end = "2018-01-10")))
+#, tryFormats = "%m-%d-%Y"
 
 observeEvent(input$plot_btn, {
   final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
