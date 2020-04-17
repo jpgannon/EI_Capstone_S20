@@ -26,6 +26,7 @@ for (well in wellNames){
 }
 #read in well info csv
 wellInfo <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/w3well_locations.txt")
+
 ```
 
 The code below reads in all the csv files containing the well data, then adds a column containing the well name and appends all the well's tibbles together into one big master tibble called allWellsData.
