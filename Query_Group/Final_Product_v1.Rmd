@@ -13,7 +13,8 @@ runtime: shiny
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
-library(shinysky)
+#library(shinysky)
+library(grid)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
@@ -37,6 +38,9 @@ Column {.sidebar}
 Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date range, click and drag your mouse on the Water Level plot then double click on the resulting rectangle.
   
 ```{r}
+#opens up a read me
+actionButton("appGuide", "Instructions")
+
 # make a slider widget for slope
 sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
             value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
@@ -49,6 +53,9 @@ sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
 checkboxGroupInput("hpu", "Select desired HPU(s):", 
                    choices = unique(hpu_data$HPU), 
                    selected = unique(hpu_data$HPU))
+
+#Identiy range of precip to highlight
+sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), min = 0, max = 100)
 
 # Select multiple wells based on well names
 selectInput("select_wells", "Select Well(s):", choices = wellNames, 
@@ -70,7 +77,7 @@ sliderInput(inputId = "mag", "Plot text size.", min = 10,
 actionButton("plot_btn", label = "Plot")
 
 # loading indicator for the impatients
-busyIndicator(text = "Calculation in progress ... ", wait = 0)
+#busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
 ```{r}
@@ -93,11 +100,23 @@ renderPlot({
   precip_trim <- precip_data %>% filter(between(as.POSIXct(DATE), 
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
+  #Recieves total precip value of precip for selected dates
+  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
   
+  #Format how total precip will appear on the graph
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
+                              gp=gpar(col="black", fontsize=13, fontface="italic")))
+  
+  #takes input from the Prange slider
+  precip_trim <- precip_trim %>% mutate(Highlight = ifelse(Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
+  
+  #plots the graph
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
+    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity")+
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    theme(text = element_text(size=input$mag))
+    theme(text = element_text(size=input$mag))+
+    annotation_custom(grob)
 })
 ```
   
@@ -202,5 +221,19 @@ getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsL
     
     #returns filtered wells list
     return(t(combWells))
-  }
+}
+
+# Pop up box if user clicks "Show App User Guide"
+# <br> creates a new line
+#https://www.w3schools.com/tags/default.asp this link will help you with html inside 
+  observeEvent(input$appGuide, {
+    showModal(modalDialog(
+      title = "App Instructions:",
+      HTML("type your stuff in here
+          <br>    
+           
+           test new line"
+      )
+    ))
+  })
 ```
