@@ -25,7 +25,7 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
 precip_data <- read_csv("PrecipSnow_BarData.csv")
-well_data <- read_csv("cleanAllWellData.csv")
+well_data <- read_csv("sept2011Data.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 hpu_data <- read_csv("hpuDataClean.csv")
 discharge_data <- read_csv("CleanDischargeData_")
