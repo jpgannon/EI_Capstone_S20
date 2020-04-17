@@ -14,7 +14,6 @@ runtime: shiny
 library(shiny)
 library(tidyverse)
 #library(shinysky)
-library(grid)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
@@ -26,10 +25,11 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
 precip_data <- read_csv("PrecipSnow_BarData.csv")
-well_data <- read_csv("sept2011Data.csv")
+well_data <- read_csv("cleanAllWellData.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 hpu_data <- read_csv("hpuDataClean.csv")
 discharge_data <- read_csv("CleanDischargeData_")
+well_info_data <- read_csv("w3well_locations.txt")
 ```
 
 Column {.sidebar}
@@ -38,24 +38,26 @@ Column {.sidebar}
 Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date range, click and drag your mouse on the Water Level plot then double click on the resulting rectangle.
   
 ```{r}
-#opens up a read me
-actionButton("appGuide", "Instructions")
-
 # make a slider widget for slope
-sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
+sliderInput("slope", "Select a slope range", min = 3.96, max = 28.4,
             value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
-            value = c(0.055854, 344.6115), ticks = TRUE, dragRange = TRUE)
+sliderInput("aspect", "Select an aspect range", min = 0.05, max = 344.6,
+            value = c(0.05, 344.6), ticks = TRUE, dragRange = TRUE)
+
+#make a slider widget for pipe height
+sliderInput("pipeHt", "Select a pipe height range",
+            min = min(well_info_data$PipeHt, na.rm = TRUE),
+            max = max(well_info_data$PipeHt, na.rm = TRUE), 
+            value = c(min(well_data$PipeHt), max(well_data$PipeHt)),
+            ticks = TRUE, 
+            dragRange = TRUE)
 
 # checkbox group input to select which HPU units they want to see
 checkboxGroupInput("hpu", "Select desired HPU(s):", 
                    choices = unique(hpu_data$HPU), 
                    selected = unique(hpu_data$HPU))
-
-#Identiy range of precip to highlight
-sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), min = 0, max = 100)
 
 # Select multiple wells based on well names
 selectInput("select_wells", "Select Well(s):", choices = wellNames, 
@@ -100,23 +102,11 @@ renderPlot({
   precip_trim <- precip_data %>% filter(between(as.POSIXct(DATE), 
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
-  #Recieves total precip value of precip for selected dates
-  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
   
-  #Format how total precip will appear on the graph
-  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
-                              gp=gpar(col="black", fontsize=13, fontface="italic")))
-  
-  #takes input from the Prange slider
-  precip_trim <- precip_trim %>% mutate(Highlight = ifelse(Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
-  
-  #plots the graph
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
-    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity")+
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    theme(text = element_text(size=input$mag))+
-    annotation_custom(grob)
+    theme(text = element_text(size=input$mag))
 })
 ```
   
@@ -131,22 +121,29 @@ observeEvent(input$slope, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu), selected = NULL)})
+                                          input$hpu, input$pipeHt[1], input$pipeHt[2]), selected = NULL)})
 
 #changes wells in wells select input box if aspect slider values change
 observeEvent(input$aspect, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(input$slope[1], input$slope[2],
+                    choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu), selected = NULL)})
+                                          input$hpu, input$pipeHt[1], input$pipeHt[2]), selected = NULL)})
 
 #changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(input$slope[1], input$slope[2],
+                    choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu))})
+                                          input$hpu, input$pipeHt[1], input$pipeHt[2]))})
 
+
+#changes wells in wells select input box if pipe height slider values change
+observeEvent(input$pipeHt, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                          input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$pipeHt[1], input$pipeHt[2]))})
 
 #provides functionality to check box that allows user to add all wells 
 #currently in the wells list to the graph
@@ -154,8 +151,9 @@ observeEvent(input$selectAllWellsBox, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     selected = if(input$selectAllWellsBox == TRUE) {
                       c(getWellList(input$slope[1], input$slope[2], 
-                                    input$aspect[1], input$aspect[2], 
-                                    input$hpu))})})
+                                          input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$pipeHt[1], input$pipeHt[2]))})})
+
 
 # Waits for plot btn to choose selected wells
 wells <- eventReactive(input$plot_btn, {input$select_wells})
@@ -204,7 +202,7 @@ renderPlot({
 
 ```{r}
 #helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
-getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList) { 
+getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList, minValPipe, maxValPipe) { 
     #makes list of wells that fit slope and aspect selected by the sliders
     saWells <- slope_asp_data %>% 
       filter(between(Slope,minValSlope, maxValSlope), 
@@ -216,24 +214,18 @@ getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsL
       subset(HPU %in% hpuValsList) %>% 
       select(Well)
     
+    #makes list of wells that fit pipe height selected by user
+    pipeWells <- well_info_data %>% 
+      filter(between(PipeHt, minValPipe, maxValPipe)) %>% 
+      select(Well)
+      
     #makes list of wells that are in both the slope/aspect list and the HPU list
-    combWells <- intersect(hpuWells, saWells)
+    tempIntersect <- intersect(hpuWells, saWells)
+    
+    #makes list of wells that are in both the slope/aspect list and the HPU list, and the pipeWells list
+    combWells <- intersect(tempIntersect, pipeWells)
     
     #returns filtered wells list
     return(t(combWells))
-}
-
-# Pop up box if user clicks "Show App User Guide"
-# <br> creates a new line
-#https://www.w3schools.com/tags/default.asp this link will help you with html inside 
-  observeEvent(input$appGuide, {
-    showModal(modalDialog(
-      title = "App Instructions:",
-      HTML("type your stuff in here
-          <br>    
-           
-           test new line"
-      )
-    ))
-  })
+  }
 ```
