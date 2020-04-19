@@ -210,7 +210,8 @@ renderPlot({
 ```
 
 ```{r}
-#helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
+#helper function for the narrowing down well names by slope and aspect. Takes 
+#the min and max vals and uses slope_asp_data to get the updated well names.
 getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList) { 
     #makes list of wells that fit slope and aspect selected by the sliders
     saWells <- slope_asp_data %>% 
