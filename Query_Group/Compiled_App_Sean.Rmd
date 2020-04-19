@@ -169,6 +169,10 @@ observeEvent(input$wl_dblclick, {
     final_dates$x <- c(brush$xmin, brush$xmax)
   else
     final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
+  
+  updateDateRangeInput(session, input = "date_range", label = NULL, 
+                    end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
+                    start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
 })
 
 plotOutput("water_level", dblclick = "wl_dblclick", 
