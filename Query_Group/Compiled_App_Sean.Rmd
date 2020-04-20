@@ -180,6 +180,10 @@ plotOutput("water_level", dblclick = "wl_dblclick",
 
 output$water_level <- renderPlot({
   
+  validate(
+      need(input$select_wells != "", label = "Well Names")
+    )
+  
   # subsets the well data by selected wells and date range
   selected_well_data <- well_data %>% filter(Well == wells()) %>% 
     filter(between(date, final_dates$x[1], final_dates$x[2]))

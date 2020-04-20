@@ -55,7 +55,8 @@ checkboxGroupInput("hpu", "Select desired HPU(s):",
                    selected = unique(hpu_data$HPU))
 
 #Identiy range of precip to highlight
-sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), min = 0, max = 100)
+sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
+            min = 0, max = 100)
 
 # Select multiple wells based on well names
 selectInput("select_wells", "Select Well(s):", choices = wellNames, 
@@ -69,12 +70,26 @@ checkboxInput("selectAllWellsBox", "Select all wells in well list",
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
 
+# log option for discharge y-axis
+checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
+
 # slider for plot text size
 sliderInput(inputId = "mag", "Plot text size.", min = 10, 
             max = 24, value = 10)
 
 # plots/refreshes data
 actionButton("plot_btn", label = "Plot")
+
+# downloads filtered data
+downloadButton("downloadData", "Download")
+
+downloadHandler(
+  filename = "Water_Level.csv",
+  content = function(file) {
+    write.csv(as.data.frame(shiny::reactiveValuesToList(subseted_data)), 
+              file, row.names = FALSE)
+  }
+)
 
 # loading indicator for the impatients
 #busyIndicator(text = "Calculation in progress ... ", wait = 0)
@@ -84,12 +99,14 @@ actionButton("plot_btn", label = "Plot")
 final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
                                                end = "2018-01-10")))
 
+subseted_data <- reactiveValues(x = NULL)
+
 observeEvent(input$plot_btn, {
   final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
   })
 ```
 
-Row {data-height=150}
+Row {data-height=250}
 --------------------------------------------------------------------------------
  
 ### Precipitation Plot
@@ -104,19 +121,22 @@ renderPlot({
   Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
   
   #Format how total precip will appear on the graph
-  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
-                              gp=gpar(col="black", fontsize=13, fontface="italic")))
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, 
+                            hjust=0, gp=gpar(col="black", fontsize=13, 
+                                             fontface="italic")))
   
   #takes input from the Prange slider
-  precip_trim <- precip_trim %>% mutate(Highlight = ifelse(Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
+  precip_trim <- precip_trim %>% 
+    mutate(Highlight = ifelse(Value >= input$Prange[1] & Value <= input$Prange[2], 
+                              Value, NA))
   
   #plots the graph
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
-    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity")+
+    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity") +
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    theme(text = element_text(size=input$mag))+
-    annotation_custom(grob)
+    theme(text = element_text(size=input$mag)) +
+    annotation_custom(grob) + theme(legend.position = "bottom")
 })
 ```
   
@@ -167,12 +187,21 @@ observeEvent(input$wl_dblclick, {
     final_dates$x <- c(brush$xmin, brush$xmax)
   else
     final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
+  
+  updateDateRangeInput(session, input = "date_range", label = NULL, 
+                    end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
+                    start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
 })
 
 plotOutput("water_level", dblclick = "wl_dblclick", 
            brush = brushOpts(id = "wl_brush"))
 
 output$water_level <- renderPlot({
+  
+  # Error message if well names are empty
+  validate(
+      need(input$select_wells != "", label = "Well Names")
+    )
   
   # subsets the well data by selected wells and date range
   selected_well_data <- well_data %>% filter(Well == wells()) %>% 
@@ -181,11 +210,12 @@ output$water_level <- renderPlot({
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
     xlab(element_blank()) + theme_classic() + 
-    theme(text = element_text(size=input$mag))
+    theme(text = element_text(size=input$mag)) + 
+    theme(legend.position = "bottom")
 })
 ```
 
-Row {data-height=200}
+Row {data-height=250}
 --------------------------------------------------------------------------------
 
 ### Discharge Plot
@@ -196,31 +226,33 @@ renderPlot({
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
   
-  ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
+  d_plot <- ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
     geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
     xlab(element_blank()) + theme(text = element_text(size=input$mag))
+  
+  if(input$log) d_plot <- d_plot + scale_y_log10() 
+  d_plot
 })
 ```
 
 ```{r}
-#helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
-getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList) { 
-    #makes list of wells that fit slope and aspect selected by the sliders
-    saWells <- slope_asp_data %>% 
-      filter(between(Slope,minValSlope, maxValSlope), 
-             between(Aspect, minValAsp, maxValAsp)) %>% 
-      select(Well)
+# helper function for the narrowing down well names by slope and aspect. Takes 
+# the min and max vals and uses slope_asp_data to get the updated well names.
+getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, 
+                        hpuValsList) { 
+  #makes list of wells that fit slope and aspect selected by the sliders
+  saWells <- slope_asp_data %>% 
+    filter(between(Slope,minValSlope, maxValSlope), 
+           between(Aspect, minValAsp, maxValAsp)) %>% select(Well)
     
-    #makes list of wells that fit HPU selected by user 
-    hpuWells <- hpu_data %>% 
-      subset(HPU %in% hpuValsList) %>% 
-      select(Well)
+  #makes list of wells that fit HPU selected by user 
+  hpuWells <- hpu_data %>% subset(HPU %in% hpuValsList) %>% select(Well)
     
-    #makes list of wells that are in both the slope/aspect list and the HPU list
-    combWells <- intersect(hpuWells, saWells)
+  #makes list of wells that are in both the slope/aspect list and the HPU list
+  combWells <- intersect(hpuWells, saWells)
     
-    #returns filtered wells list
-    return(t(combWells))
+  #returns filtered wells list
+  return(t(combWells))
 }
 
 # Pop up box if user clicks "Show App User Guide"
