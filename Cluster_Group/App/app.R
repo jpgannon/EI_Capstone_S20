@@ -89,12 +89,11 @@ server <- function(input, output){
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
              <b> 7. View Data Table </b> <br>
-             Check to view a table of the water depths for well 1 and well 2 below the plot.
+             Check to view a table of the water depths for well 1 and well 2 below the plot.<br>
              <br>
              <b> 8. Different Main Panel Tabs </b> <br>
              Well Plot: Line plot of well 1 and well 2 water depths over time. <br>
              Scatter Plot: Scatter plot of well 1 and well 2 water depth relationship. <br>
-             <br>
              Data Availability: Image of when each well has measured data. <br>
              <br>
              <b> 9. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
@@ -113,7 +112,8 @@ server <- function(input, output){
               
               <b> Well 2: </b> Any well that the user selects in order to perform a linear regression. <br>
               This well is not needed or used during the interpolation gap filling process, and is dynamically limited 
-              by the app so the user can only select a well that is from within the same cluster as Well 1.<br>
+              by the app so the user can only select a well that is from within the same cluster as Well 1. If a well was
+              not part of the cluster analysis, it is assigned to the cluster group 5 and allowed to pick from any possible well.<br>
               
               <b> Interpolation: </b> A method of predictive gap filling that relies only on Well 1 data. 
               It uses two data points, the one directly preceding and the one directly following a gap in the 
@@ -161,7 +161,7 @@ server <- function(input, output){
               can demonstrate which wells behave more similarly. <br> In order to achieve the highest R^2 Value, it is recommended to trim the
                selected date range down as small as possible, while still achieving your goal. <br>
              <br>
-             <b> 5. Explain the Cluster Analysis </b> <br>
+             <b> 5. How was the Cluster Analysis done? </b> <br>
              In order to determine the optimal clustering method for clustering the Water Table well data, we tested two contrasting clustering methods, 
              and then compared the results. <br>
              The first clustering method was <b> Dynamic Time Warping (DTW) Clustering </b> <br>
