@@ -141,6 +141,7 @@ jd_wide <- jd_wells %>%
   pivot_wider(names_from = Well,
               values_from = water_depth)
 
+#write_csv(jd_wide, path = "D:/Capstone/data/jd_wide.csv")
 
 #plotting dendrogram for JD wells
 transposed <- t(jd_wide[-1])
@@ -165,6 +166,16 @@ joined_clusters <- jd_wells %>%
 
 table(joined_clusters$Cluster)
 
+#plotting avg water depth of each cluster
+avg_clusters <- joined_clusters %>% 
+  group_by(Cluster, date) %>% 
+  summarize(avg_dpth = mean(water_depth))
+
+ggplot(avg_clusters,
+       aes(x = date,
+           y = avg_dpth,
+           color = Cluster)) + geom_line()
+
 #plotting cluster 3
 cluster_3 <- joined_clusters %>% 
   filter(Cluster == 3)
@@ -179,7 +190,7 @@ ggplot(cluster_3,
   labs(title = "Cluster 3") +
   facet_wrap(~Well) 
 
-#plotting cluster 2
+x#plotting cluster 2
 cluster_2 <- joined_clusters %>% 
   filter(Cluster == 2)
 
@@ -213,4 +224,11 @@ ggplot(joined_clusters,
            y = water_depth,
            color = Cluster)) +
   geom_point() +
-  scale_color_gradient(low = "yellow", high = "red")
+  scale_color_gradient(low = "yellow", high = "red") +
+  facet_wrap(~Cluster) +
+  labs(x = "Date (2008)",
+       y = "Water Depth (cm)",
+       title = "Water Depth of Four Clusters for JD Wells")
+
+
+

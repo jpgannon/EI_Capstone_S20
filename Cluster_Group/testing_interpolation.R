@@ -10,7 +10,9 @@ hourly_gaps <- hourly %>%
   mutate(gapped_depths = ifelse(date >= "2012-02-01", 
                                 ifelse(date <= "2012-03-01", NA, water_depth), water_depth)) %>% 
   select(date, gapped_depths)
-
+hourly[1,] %>% 
+  select(Well) %>% 
+  as.character()
 
 ggplot(hourly_gaps,
        aes(x = date,
@@ -138,3 +140,5 @@ combined <- combined %>%
   mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE))
 combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)
 str(combined)
+
+yes <- data.frame()

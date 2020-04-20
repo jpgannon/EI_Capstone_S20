@@ -24,12 +24,17 @@ wells_wide <- filtered_wells %>%
               values_from = wtdepth)
 #transposing 
 transposed <- t(wells_wide[-1])
-wells_dis <- dist(transposed, method = "euclidean")
+wells_dis <- dist(transposed, method = "maximum")
 fit_dend <- hclust(wells_dis, method = "ward.D")
-rect.hclust(fit_dend, k = 5, border = "green")
+clusters <- rect.hclust(fit_dend, k = 5, border = "green")
 plot(fit_dend, family = "Arial")
-?dist
-?rect.hclust
+
+clusters_cu <- cutree(hclust(wells_dis), 5)
+
+library(fpc)
+cluster.stats(d = wells_dis, 
+              clustering = clusters_cu,
+              )
 
 
 ggdendrogram(fit_dend, rotate = TRUE, theme_dendro = FALSE) +
@@ -58,3 +63,12 @@ ggplot(joined_clusters,
        title = "Water Depth Clusters for 01/01/2012 to 06/01/2012") +
   scale_y_continuous(trans = "reverse") +
   facet_wrap(~Cluster)
+
+clusters <- as.data.frame(table(joined_clusters$Cluster))
+
+#Testing cluster tendency
+#install.packages("clustertend")
+library(clustertend)
+library(factoextra)
+?clustertend
+res <- get_clust_tendency(joined_clusters, n = nrow(joined_clusters - 1), graph = FALSE)
