@@ -412,6 +412,44 @@ server <- function(input, output){
       filter(Well == w2)
     w2_hpu <- as.character(w2_hpu[1, 3])
     
+    # Getting fit from original data
+    Well_1_data <- Well_1_input()
+    Well_2_data <- Well_2_input()
+    w1 <- Well_1_data[1, 1] %>% 
+      as.character()
+    w2 <- Well_2_data[1, 1] %>% 
+      as.character()
+    Well_1_data <- Well_1_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    Well_2_data <- Well_2_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
+    start_date <- Well_1_data %>% 
+      arrange(date.) %>% 
+      select(date.)
+    start_date <- start_date[1, 1]
+    end_date <- Well_1_data %>% 
+      arrange(desc(date.)) %>% 
+      select(date.)
+    end_date <- end_date[1, 1]
+    start_date <- as.vector(t(start_date))
+    end_date <- as.vector(t(end_date))
+    start_date <- as.POSIXct(start_date, origin = "1970-01-01:00:00:00")
+    end_date <- as.POSIXct(end_date, origin = "1970-01-01:00:00:00")
+    
+    # Making full sequence of hourly dates from start to end of well 1 data
+    all_times <- seq(start_date, end_date, by = "hour")
+    all_times_frame <- data.frame(all_times)  # Converting seq vector to data frame class
+    colnames(all_times_frame) <- "date."  # Renaming column to "date." to match well date column name
+    
+    # Joining data to have all dates from start to end of well 1 date
+    Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
+    combined <- full_join(Well_1_data, Well_2_data, by = "date.")
+    combined <- combined %>% 
+      select(date., wtdepth.x, wtdepth.y)
+    colnames(combined) <- c("date.", "Well_1_Water_Depth", "Well_2_Water_Depth")
+    
+    fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = combined)
+    
     # Plotting interpolation with just well 1 plot
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       result <- ggplot() +
@@ -435,8 +473,6 @@ server <- function(input, output){
       
       # Plotting linear regression with just well 1 plot  
     } else if (input$Well_2_Plot == FALSE & input$filling_choice == "Linear-Regression"){
-      
-      fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
@@ -486,8 +522,6 @@ server <- function(input, output){
       
       # Plotting well 1 with data filled using linear regression and original well 2 data  
     } else{
-      
-      fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = well_data)
       
       result <- ggplot() +
         geom_point(data = well_data,
@@ -582,6 +616,8 @@ server <- function(input, output){
       select(date., wtdepth.x, wtdepth.y)
     colnames(combined) <- c("date.", "Well_1_Water_Depth", "Well_2_Water_Depth")
     
+    fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = combined)
+    
     # ggplot for scatterplot
     ggplot(data = combined,
            mapping = aes(x = Well_1_Water_Depth,
@@ -590,7 +626,8 @@ server <- function(input, output){
       labs(x = paste(w1, "Water Depth (cm)"),
            y = paste(w2, "Water Depth (cm)"),
            title = paste("Water Depth of Wells", w1, "and", w2),
-           subtitle = paste(start_date, "to", end_date)) +
+           subtitle = paste(start_date, "to", end_date),
+           caption = paste("R-squared = ", summary(fit)$r.squared)) +
       theme_bw()
   })
   
