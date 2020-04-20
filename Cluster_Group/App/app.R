@@ -88,11 +88,13 @@ server <- function(input, output){
              <b> 6. Brushing to zoom in on plot </b> <br>
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
-             <b> 7. If desired, check the \"View Data Table \" box to display a table of the data below the plot. </b> <br>
+             <b> 7. View Data Table </b> <br>
+             Check to view a table of the water depths for well 1 and well 2 below the plot.
              <br>
              <b> 8. Different Main Panel Tabs </b> <br>
              Well Plot: Line plot of well 1 and well 2 water depths over time. <br>
              Scatter Plot: Scatter plot of well 1 and well 2 water depth relationship. <br>
+             <br>
              Data Availability: Image of when each well has measured data. <br>
              <br>
              <b> 9. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
