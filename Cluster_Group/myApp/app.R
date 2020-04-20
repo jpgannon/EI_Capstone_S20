@@ -1,3 +1,4 @@
+# Load required packages
 library(DT)
 library(shiny)
 library(tidyverse)
@@ -6,7 +7,7 @@ library(plotly)
 library(png)
 library(zoo)
 
-# import data
+# Import data
 setwd("D:/Capstone/data")
 wells <- read_csv("oneHourSummary.csv")
 clusters <- read_csv("clusters_with_HPU.csv")
@@ -20,8 +21,6 @@ ui <- fluidPage(
     sidebarPanel(
       actionButton("appGuide", "Show App User Guide"),
       actionButton("FAQ", "Show App FAQ"),
-      actionButton("dataAvailability", "Show Data Availability"),
-      actionButton("scatter", "Show Scatterplot"),
       selectInput("filling_choice", label = h5("Select a gap filling method:"),
                   choices = prediction_choices),
       h3("Well Selection"),
@@ -41,14 +40,17 @@ ui <- fluidPage(
                       border-style:none;
                       border-width:1px;
                       border-radius:5%;
-                      font-size:14px;"),
-      plotOutput("sidePlot")
+                      font-size:14px;")
     ),
     mainPanel(
-      plotOutput("Plot",
-                 dblclick = "dblclick",
-                 brush = brushOpts(id = "date_brush"),
-                 height = "600px"),
+      tabsetPanel(
+        tabPanel("Plot", plotOutput("PlotWells",
+                                    dblclick = "dblclick",
+                                    brush = brushOpts(id = "date_brush"),
+                                    height = "600px")),
+        tabPanel("Scatter Plot", plotOutput("PlotScatter")),
+        tabPanel("Data Availability", imageOutput("PlotDataAvailability"))
+      ),
       DT::dataTableOutput("mytable")
     )
   ),
@@ -65,41 +67,37 @@ server <- function(input, output){
     showModal(modalDialog(
       title = "How To Use the App:",
       HTML("<b> 1. Select which gap filling method you would like to use </b> <br> 
-      Tip: Is the gap a smaller time period? (Less than 1 Week) <br>
+             Tip: Is the gap a smaller time period? (Less than 1 Week) <br>
              If yes, then it is safe to use either Interpolation or the Linear Regression method. <br>
              If no, then it is safer to use the Linear Regression method and find a Well 2 that has a high R2 Value (seen at the bottom right corner of the Linear Regression plot, above the top of the Dataset) <br>
              <br>
-             <b> 2. If desired, the \"Show Data Availability\" button will display an image of times where each well has data. Blue areas are where the well has data, red areas are NA values, and blanks are times where data is missing entirely.
-             \"Show Scatterplot\" will display a plot showing the relationship between Well 1 and Well 2 water depths.
-             <br> <br>
-             <b> 3. Select Well 1 </b> <br>
+             <b> 2. Select Well 1 </b> <br>
              What well has missing data that you are trying to fill with synthetic data? <br>
              <br>
-             <b> 4. Select Well 2 </b> <br>
+             <b> 3. Select Well 2 </b> <br>
              Tip: Are you using the Interpolation method? <br>
              If yes, the Well 2 that you select will not matter or factor into the gap filling process, so it does not matter which Well 2 is selected. <br>
              If no, it is important that you select a Well 2. You can determine which is the best Well 2 to select based on which has a higher R2 value (seen at the bottom right, below the plot and above the datatable) <br>
              <br>
-             <b> 5. Select the Date range for the missing data </b> <br>
+             <b> 4. Select the Date range for the missing data </b> <br>
              You can use this data range to narrow down to a single day that is missing data, or you can view a broader time period for the data, which might include multiple gaps, or no gaps at all. <br>
              <br>
-             <b> 6. View the plot </b> <br>
+             <b> 5. View the plot </b> <br>
              If you selected Linear Regression, it might be beneficial to check the box to view Well 2 data (in grey) on the plot alongside the Well 1 data. This will help indicate to you the behavior of the well you are using to synthesize data (Well 2) <br>
              <br>
-             <b> 7. Brushing to zoom in on plot </b> <br>
+             <b> 6. Brushing to zoom in on plot </b> <br>
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
-             <b> 8. View the datatable (below the plot) </b> <br>
-             This allows the user to view the raw data being plotted <br>
+             <b> 7. If desired, check the \"View Data Table \" box to display a table of the data below the plot. </b> <br>
              <br>
-             <b> 9. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
+             <b> 8. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
              <br>
-             <b> 10. If desired, click the button to Download Data </b>"
+             <b> 9. If desired, click the button to Download Data </b>"
       )
     ))
   })
   
-  # Pop up box if user clicks "Show App User Guide"
+  # Pop up box if user clicks "Show App FAQ"
   observeEvent(input$FAQ, {
     showModal(modalDialog(
       title = "Application FAQ & Background",
@@ -262,17 +260,20 @@ server <- function(input, output){
   # Returns: data frame of combined Well 1 and Well 2 data
   Dataset <- reactive({
     
+    # Initialize data frame object
     combined <- data.frame()
     
+    # Setting inputs to wells to be used
     Well_1_data <- Well_1_input()
     Well_2_data <- Well_2_input()
     
+    # Filtering wells to date range
     Well_1_data <- Well_1_data %>%
       filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     Well_2_data <- Well_2_data %>%
       filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     
-    # Adding NAs to fill in blanks/gaps for well_1
+    # Adding NAs to fill in blanks/gaps for well 1
     start_date <- Well_1_data %>% 
       arrange(date.) %>% 
       select(date.)
@@ -300,24 +301,24 @@ server <- function(input, output){
     # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
       
-      # selecting relevant columns
+      # Selecting relevant columns
       Well_1_data <- Well_1_data %>% 
         select(date., wtdepth)
       Well_2_data <- Well_2_data %>% 
         select(date., wtdepth)
       
-      # joining Well 1 and Well 2 data
+      # Joining Well 1 and Well 2 data
       combined <- right_join(Well_2_data, Well_1_data, by = "date.")
       colnames(combined) <- c("date.", "well_2", "well_1")
       
-      # interpolation of well 1 NA values
+      # Interpolation of well 1 NA values
       combined <- combined %>%  # creates new column to separate original and interpolated values 
         mutate(is_predicted = ifelse(is.na(well_1), TRUE, FALSE)) 
       combined$well_1 <- na.approx(combined$well_1, na.rm = FALSE)  # interpolate NA values
       combined <- combined[,c(1, 3, 2, 4)]   # rearrange columns to make well 1 before well 2
       combined <- combined %>% 
         mutate(is_predicted = ifelse(is_predicted == TRUE, "Predicted", "Measured"))
-      colnames(combined) <- c("Date", "Well_1_Water_Depth", "Well_2_Water_Depth", "Measured_or_Predicted")
+      colnames(combined) <- c("Date_Time", "Well_1_Water_Depth", "Well_2_Water_Depth", "Measured_or_Predicted")
       
       # Linear regression gap filling    
     } else if (input$filling_choice == "Linear-Regression"){
@@ -326,10 +327,10 @@ server <- function(input, output){
       
       combined <- plyr::rename(combined, c(wtdepth.x = "Well_2_level", wtdepth.y = "Well_1_level"))
       
+      # Linear model for relationship between well 1 and well 2 water levels
       regression <- lm(Well_1_level ~ Well_2_level, combined)
       
-      #the formula is y = regression$coefficients[2]x + regression$coefficients[1]
-      
+      # The formula is y = regression$coefficients[2]x + regression$coefficients[1]
       slope <- regression$coefficients[2]
       y_int <- regression$coefficients[1]
       
@@ -339,6 +340,7 @@ server <- function(input, output){
       
       num_well1 <- nrow(combined)
       
+      # Replacing NAs and -99s with calculated value from formula
       for (i in 1:num_well1) {
         if (is.na(combined$Well_1_level[i]) == TRUE) {
           combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
@@ -346,7 +348,7 @@ server <- function(input, output){
           combined$predicted_values[i] = (slope * combined$Well_2_level[i] + y_int)
         }
         else {
-          combined$predicted_values[i] = combined$Well_1_level[i]
+          combined$predicted_values[i] = combined$Well_1_level[i] # Non-NAs stay the same
         }
       }
       
@@ -363,16 +365,18 @@ server <- function(input, output){
         }
       }
       
+      # Renaming columns
       combined <- plyr::rename(combined, c(Well_2_level = "Well_2_Water_Depth", 
-                                           date. = "Date",
+                                           date. = "Date_Time",
                                            is_predicted = "Measured_or_Predicted",
                                            predicted_values = "Well_1_Water_Depth"))
       
+      # Selecting relevant columns
       combined <- combined %>%
         mutate(Measured_or_Predicted = ifelse(Measured_or_Predicted == FALSE, "Measured", "Predicted")) %>% 
-        select(Date, Well_1_Water_Depth, Well_2_Water_Depth, Measured_or_Predicted)
+        select(Date_Time, Well_1_Water_Depth, Well_2_Water_Depth, Measured_or_Predicted)
     }
-    return(combined)
+    return(combined)  # Return data frame object
   })
   
   # Reactive function to create plots each time well selection changes
@@ -385,10 +389,10 @@ server <- function(input, output){
     
     # Getting start and end dates to put on plot axis
     start_date <- well_data %>% 
-      arrange(Date)
+      arrange(Date_Time)
     start_date <- start_date[1, 1]
     end_date <- well_data %>% 
-      arrange(desc(Date))
+      arrange(desc(Date_Time))
     end_date <- end_date[1, 1]
     
     # Getting well 1 and well 2 HPUs to put in plot caption
@@ -405,20 +409,20 @@ server <- function(input, output){
     if(input$Well_2_Plot == FALSE & input$filling_choice == "Interpolation"){
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = Date,
+                   mapping = aes(x = Date_Time,
                                  y = Well_1_Water_Depth,
                                  color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
                              labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_1_Water_Depth)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = NULL,
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2),
+             title = paste("Water Depth of Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
         theme_bw(base_size = 20)
       
@@ -429,13 +433,13 @@ server <- function(input, output){
       
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = Date,
+                   mapping = aes(x = Date_Time,
                                  y = Well_1_Water_Depth, 
                                  color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
                              labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_1_Water_Depth)) +
         scale_y_reverse() +
         geom_hline(yintercept = 0, color = "brown") +
@@ -443,7 +447,7 @@ server <- function(input, output){
              y = "Water Table Depth (cm)",
              caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", 
                              w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2),
+             title = paste("Water Depth of Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
         theme_bw(base_size = 20)
       
@@ -452,24 +456,24 @@ server <- function(input, output){
       
       result <- ggplot() +
         geom_point(data = well_data,  # well 1
-                   mapping = aes(x = Date,
+                   mapping = aes(x = Date_Time,
                                  y = Well_1_Water_Depth,
                                  color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
                              labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,   # well 2
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_2_Water_Depth),
                   color = "grey70") +
         geom_line(data = well_data,
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_1_Water_Depth)) +
         geom_hline(yintercept = 0, color = "brown") +
         scale_y_reverse() +
         labs(x = NULL,
              y = "Water Table Depth (cm)",
              caption = paste("Well 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2),
+             title = paste("Water Depth of Wells", w1, "and", w2),
              subtitle =paste(start_date, "to", end_date)) +
         theme_bw(base_size = 20)
       
@@ -480,16 +484,16 @@ server <- function(input, output){
       
       result <- ggplot() +
         geom_point(data = well_data,
-                   mapping = aes(x = Date,
+                   mapping = aes(x = Date_Time,
                                  y = Well_1_Water_Depth, 
                                  color = Measured_or_Predicted)) +
         scale_color_discrete(name = "Values",
                              labels = c("Measured", "Predicted")) +
         geom_line(data = well_data,
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_1_Water_Depth)) +
         geom_line(data = well_data,
-                  mapping = aes(x = Date,
+                  mapping = aes(x = Date_Time,
                                 y = Well_2_Water_Depth),
                   color = "grey70") +
         geom_hline(yintercept = 0, color = "brown") +
@@ -497,7 +501,7 @@ server <- function(input, output){
         labs(x = NULL,
              y = "Water Table Depth (cm)",
              caption = paste("R-squared = ", summary(fit)$r.squared,"\nWell 1 HPU: ", w1_hpu, "\nWell 2 HPU: ", w2_hpu),
-             title = paste("Water Depth for Wells", w1, "and", w2),
+             title = paste("Water Depth of Wells", w1, "and", w2),
              subtitle = paste(start_date, "to", end_date)) +
         theme_bw(base_size = 20)
       
@@ -513,34 +517,31 @@ server <- function(input, output){
     } else{
       date_range$x <- as.POSIXct(c(input$date[1], input$date[2]))
     }
-    
   })
   
   # Plot output
-  output$Plot <- renderPlot({
+  output$PlotWells <- renderPlot({
     create_plot()      
   }
   )
   
-  observeEvent(input$dataAvailability, {
-    output$sidePlot <- renderImage({
-      list(src = "data_availability.png")
-    }, deleteFile = FALSE)
-  })
+  # Plots data availability chart in sidebar when "Show Data Availability" is pressed
+  output$PlotDataAvailability <- renderImage({
+    list(src = "data_availability_chart.png")
+  }, deleteFile = FALSE)
   
-  observeEvent(input$scatter, {
-    output$sidePlot <- renderPlot({
-    
+  # Plots a scatterplot of well 1 and well 2 water depth relationship when "Show Scatterplot" is pressed
+  output$PlotScatter <- renderPlot({
     Well_1_data <- Well_1_input()
     Well_2_data <- Well_2_input()
     
-    #names of wells
+    # Names of wells
     w1 <- Well_1_data[1, 1] %>% 
       as.character()
     w2 <- Well_2_data[1, 1] %>% 
       as.character()
-      
     
+    # Filtering out date range
     Well_1_data <- Well_1_data %>%
       filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     Well_2_data <- Well_2_data %>%
@@ -573,15 +574,18 @@ server <- function(input, output){
     combined <- combined %>% 
       select(date., wtdepth.x, wtdepth.y)
     colnames(combined) <- c("date.", "Well_1_Water_Depth", "Well_2_Water_Depth")
+    
+    # ggplot for scatterplot
     ggplot(data = combined,
            mapping = aes(x = Well_1_Water_Depth,
                          y = Well_2_Water_Depth)) +
       geom_point(size = 0.5) +
-      labs(x = w1,
-           y = w2) +
+      labs(x = paste(w1, "Water Depth (cm)"),
+           y = paste(w2, "Water Depth (cm)"),
+           title = paste("Water Depth of Wells", w1, "and", w2),
+           subtitle = paste(start_date, "to", end_date)) +
       theme_bw()
   })
-    })
   
   # Table with water depth and predictions results
   output$mytable = DT::renderDataTable({
