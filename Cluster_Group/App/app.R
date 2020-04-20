@@ -44,7 +44,7 @@ ui <- fluidPage(
     ),
     mainPanel(
       tabsetPanel(
-        tabPanel("Plot", plotOutput("PlotWells",
+        tabPanel("Well Plot", plotOutput("PlotWells",
                                     dblclick = "dblclick",
                                     brush = brushOpts(id = "date_brush"),
                                     height = "600px")),
@@ -89,9 +89,15 @@ server <- function(input, output){
              Click and drag a box over the time frame. Then, double click inside the box to replot the graph. <br>
              <br>
              <b> 7. If desired, check the \"View Data Table \" box to display a table of the data below the plot. </b> <br>
-             <b> 8. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
              <br>
-             <b> 9. If desired, click the button to Download Data </b>"
+             <b> 8. Different Main Panel Tabs </b> <br>
+             Well Plot: Line plot of well 1 and well 2 water depths over time. <br>
+             Scatter Plot: Scatter plot of well 1 and well 2 water depth relationship. <br>
+             Data Availability: Image of when each well has measured data. <br>
+             <br>
+             <b> 9. If desired, right-click on the image of the plot and select 'Save Image As' to download the plot </b> <br>
+             <br>
+             <b> 10. If desired, click the button to Download Data </b>"
       )
     ))
   })
