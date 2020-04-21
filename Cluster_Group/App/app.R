@@ -3,7 +3,6 @@ library(DT)
 library(shiny)
 library(tidyverse)
 library(lubridate)
-library(plotly)
 library(png)
 library(zoo)
 
@@ -45,9 +44,9 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(
         tabPanel("Well Plot", plotOutput("PlotWells",
-                                    dblclick = "dblclick",
-                                    brush = brushOpts(id = "date_brush"),
-                                    height = "600px")),
+                                         dblclick = "dblclick",
+                                         brush = brushOpts(id = "date_brush"),
+                                         height = "600px")),
         tabPanel("Scatter Plot", plotOutput("PlotScatter")),
         tabPanel("Data Availability", imageOutput("PlotDataAvailability"))
       ),
@@ -263,24 +262,15 @@ server <- function(input, output){
     date_range$x <- as.POSIXct(c(input$date[1], input$date[2]))
   })
   
-  # Performs calculations based on chosen gap filling method
-  # Returns: data frame of combined Well 1 and Well 2 data
-  Dataset <- reactive({
+  # Reactive function to fill in blanks with NAs from start to end of well 1 data
+  BlankToNA <- reactive({
     
-    # Initialize data frame object
-    combined <- data.frame()
-    
-    # Setting inputs to wells to be used
+    # Getting and filtering well 1 input
     Well_1_data <- Well_1_input()
-    Well_2_data <- Well_2_input()
-    
-    # Filtering wells to date range
     Well_1_data <- Well_1_data %>%
       filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-    Well_2_data <- Well_2_data %>%
-      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     
-    # Adding NAs to fill in blanks/gaps for well 1
+    # Getting max and min dates
     start_date <- Well_1_data %>% 
       arrange(date.) %>% 
       select(date.)
@@ -304,6 +294,23 @@ server <- function(input, output){
     # Joining data to have all dates from start to end of well 1 date
     Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
     
+    return(Well_1_data)
+  })
+  
+  # Performs calculations based on chosen gap filling method
+  # Returns: data frame of combined Well 1 and Well 2 data
+  Dataset <- reactive({
+    
+    # Initialize data frame object
+    combined <- data.frame()
+    
+    # Setting inputs to wells to be used
+    Well_1_data <- BlankToNA()
+    Well_2_data <- Well_2_input()
+    
+    # Filtering well 2 to date range
+    Well_2_data <- Well_2_data %>%
+      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     
     # Interpolation gap filling
     if(input$filling_choice == "Interpolation"){
@@ -413,36 +420,14 @@ server <- function(input, output){
     w2_hpu <- as.character(w2_hpu[1, 3])
     
     # Getting fit from original data
-    Well_1_data <- Well_1_input()
+    Well_1_data <- BlankToNA()
     Well_2_data <- Well_2_input()
     w1 <- Well_1_data[1, 1] %>% 
       as.character()
     w2 <- Well_2_data[1, 1] %>% 
       as.character()
-    Well_1_data <- Well_1_data %>%
-      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-    Well_2_data <- Well_2_data %>%
-      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
-    start_date <- Well_1_data %>% 
-      arrange(date.) %>% 
-      select(date.)
-    start_date <- start_date[1, 1]
-    end_date <- Well_1_data %>% 
-      arrange(desc(date.)) %>% 
-      select(date.)
-    end_date <- end_date[1, 1]
-    start_date <- as.vector(t(start_date))
-    end_date <- as.vector(t(end_date))
-    start_date <- as.POSIXct(start_date, origin = "1970-01-01:00:00:00")
-    end_date <- as.POSIXct(end_date, origin = "1970-01-01:00:00:00")
-    
-    # Making full sequence of hourly dates from start to end of well 1 data
-    all_times <- seq(start_date, end_date, by = "hour")
-    all_times_frame <- data.frame(all_times)  # Converting seq vector to data frame class
-    colnames(all_times_frame) <- "date."  # Renaming column to "date." to match well date column name
     
     # Joining data to have all dates from start to end of well 1 date
-    Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
     combined <- full_join(Well_1_data, Well_2_data, by = "date.")
     combined <- combined %>% 
       select(date., wtdepth.x, wtdepth.y)
@@ -573,7 +558,7 @@ server <- function(input, output){
   
   # Plots a scatterplot of well 1 and well 2 water depth relationship when "Show Scatterplot" is pressed
   output$PlotScatter <- renderPlot({
-    Well_1_data <- Well_1_input()
+    Well_1_data <- BlankToNA()
     Well_2_data <- Well_2_input()
     
     # Names of wells
@@ -583,38 +568,20 @@ server <- function(input, output){
       as.character()
     
     # Filtering out date range
-    Well_1_data <- Well_1_data %>%
-      filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     Well_2_data <- Well_2_data %>%
       filter(date. >= date_range$x[1] & date. <= date_range$x[2])
     
-    # Adding NAs to fill in blanks/gaps for well_1
-    start_date <- Well_1_data %>% 
-      arrange(date.) %>% 
-      select(date.)
-    start_date <- start_date[1, 1]
-    end_date <- Well_1_data %>% 
-      arrange(desc(date.)) %>% 
-      select(date.)
-    end_date <- end_date[1, 1]
-    
-    # Converting tibble to POSIXct class
-    start_date <- as.vector(t(start_date))
-    end_date <- as.vector(t(end_date))
-    start_date <- as.POSIXct(start_date, origin = "1970-01-01:00:00:00")
-    end_date <- as.POSIXct(end_date, origin = "1970-01-01:00:00:00")
-    
-    # Making full sequence of hourly dates from start to end of well 1 data
-    all_times <- seq(start_date, end_date, by = "hour")
-    all_times_frame <- data.frame(all_times)  # Converting seq vector to data frame class
-    colnames(all_times_frame) <- "date."  # Renaming column to "date." to match well date column name
-    
-    # Joining data to have all dates from start to end of well 1 date
-    Well_1_data <- left_join(all_times_frame, Well_1_data, by = "date.")
     combined <- full_join(Well_1_data, Well_2_data, by = "date.")
     combined <- combined %>% 
       select(date., wtdepth.x, wtdepth.y)
     colnames(combined) <- c("date.", "Well_1_Water_Depth", "Well_2_Water_Depth")
+    
+    start_date <- Well_1_data %>% 
+      arrange(date.)
+    start_date <- start_date[1, 1]
+    end_date <- Well_1_data %>% 
+      arrange(desc(date.))
+    end_date <- end_date[1, 1]
     
     fit <- lm(Well_1_Water_Depth ~ Well_2_Water_Depth, data = combined)
     
