@@ -38,10 +38,6 @@ discharge_data <- read_csv("CleanDischargeData_")
 #                    Reactive Values and Helper Functions                      #
 ################################################################################
 
-dates <- reactiveValues(
-  range = as.POSIXct(c(start = "2010-07-01", end = "2018-01-10"))
-  )
-
 well_vals <- reactiveValues(
   slope = c(3.963356, 28.42197), asp = c(0.055854, 344.6115), 
   twi = c(NULL, NULL), uaa = c(NULL, NULL), hpu = unique(hpu_data$HPU)
@@ -74,9 +70,6 @@ getWellList <- function() {
 ################################################################################
 #                             Observe Events                                   #
 ################################################################################
-observeEvent(input$date_range, {
-  dates$range <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
-  })
 
 #changes wells in wells select input box if slope slider values change
 observeEvent(input$slope, {
@@ -119,8 +112,6 @@ observeEvent(input$wl_dblclick, {
     updateDateRangeInput(session, input = "date_range", label = NULL, 
                     end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
                     start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
-  else
-    dates$range <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
   })
 
 # Pop up box if user clicks "Show App User Guide"
@@ -212,7 +203,7 @@ renderPlot({
   
   # Filters the date and mutates for highlighted section
   precip_trim <- precip_data %>% 
-    filter(between(as.POSIXct(DATE), dates$range[1], dates$range[2])) %>% 
+    filter(between(DATE, input$date_range[1], input$date_range[2])) %>% 
     mutate(Highlight = ifelse(
       Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
   
@@ -256,7 +247,9 @@ output$water_level <- renderPlot({
   
   # subsets the well data by selected wells and date range
   selected_well_data <- well_data %>% filter(Well == input$select_wells) %>% 
-    filter(between(date, dates$range[1], dates$range[2]))
+    filter(between(date, 
+                   as.POSIXct(input$date_range[1]), 
+                   as.POSIXct(input$date_range[2])))
   
   download$data <- selected_well_data
   
@@ -282,7 +275,8 @@ renderPlot({
   
   # Filters the dates
   discharge_trim <- discharge_data %>% 
-    filter(between(as.POSIXct(Date), dates$range[1], dates$range[2]))
+    filter(between(as.POSIXct(Date), as.POSIXct(input$date_range[1]),
+                   as.POSIXct(input$date_range[2])))
   
   d_plot <- ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
     geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
