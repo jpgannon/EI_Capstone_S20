@@ -4,7 +4,6 @@ output:
   flexdashboard::flex_dashboard:
     vertical_layout: scroll
     orientation: rows
-    social: menu
     source_code: embed
 runtime: shiny
 ---
@@ -13,7 +12,6 @@ runtime: shiny
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
-#library(shinysky)
 library(grid)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
@@ -34,8 +32,9 @@ discharge_data <- read_csv("CleanDischargeData_")
 
 Column {.sidebar}
 --------------------------------------------------------------------------------
-  
-Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date range, click and drag your mouse on the Water Level plot then double click on the resulting rectangle.
+
+If this text isn't here, the appGuide button sticks to the top. Like the margin 
+is for some reason = 0. but yeah lets put a section title here or fix the margin
   
 ```{r}
 #opens up a read me
@@ -74,11 +73,7 @@ dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01",
 checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
 
 # slider for plot text size
-sliderInput(inputId = "mag", "Plot text size.", min = 10, 
-            max = 24, value = 10)
-
-# plots/refreshes data
-actionButton("plot_btn", label = "Plot")
+sliderInput(inputId = "mag", "Plot text size.", min = 10, max = 24, value = 10)
 
 # downloads filtered data
 downloadButton("downloadData", "Download")
@@ -90,9 +85,6 @@ downloadHandler(
               file, row.names = FALSE)
   }
 )
-
-# loading indicator for the impatients
-#busyIndicator(text = "Calculation in progress ... ", wait = 0)
 ```
 
 ```{r}
@@ -101,7 +93,7 @@ final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01",
 
 subseted_data <- reactiveValues(x = NULL)
 
-observeEvent(input$plot_btn, {
+observeEvent(input$date_range, {
   final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
   })
 ```
@@ -112,38 +104,38 @@ Row {data-height=250}
 ### Precipitation Plot
 
 ```{r}
-# renders the plot
 renderPlot({
-  precip_trim <- precip_data %>% filter(between(as.POSIXct(DATE), 
-                                                final_dates$x[1],
-                                                final_dates$x[2]))
-  #Recieves total precip value of precip for selected dates
-  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE),2)
   
-  #Format how total precip will appear on the graph
-  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, 
-                            hjust=0, gp=gpar(col="black", fontsize=13, 
-                                             fontface="italic")))
+  # Filters the date and mutates for highlighted section
+  precip_trim <- precip_data %>% 
+    filter(between(as.POSIXct(DATE), final_dates$x[1], final_dates$x[2])) %>% 
+    mutate(Highlight = ifelse(
+      Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA
+      ))
   
-  #takes input from the Prange slider
-  precip_trim <- precip_trim %>% 
-    mutate(Highlight = ifelse(Value >= input$Prange[1] & Value <= input$Prange[2], 
-                              Value, NA))
+  # Recieves total precip value of precip for selected dates
+  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE), 2)
   
-  #plots the graph
+  # Format how total precip will appear on the graph
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x = 0.1, 
+                            y = 0.1, hjust = 0, gp = gpar(col="black", 
+                                                          fontsize = input$mag, 
+                                                          fontface="italic")))
+  
+  # plots the graph
   ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
     geom_bar(position = "stack", stat = "identity") + theme_classic() +
     geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity") +
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    theme(text = element_text(size=input$mag)) +
-    annotation_custom(grob) + theme(legend.position = "bottom")
+    theme(text = element_text(size=input$mag)) + annotation_custom(grob) +
+    theme(legend.position = "bottom")
 })
 ```
   
-Row {data-height=350}
+Row {data-height=400}
 --------------------------------------------------------------------------------
 
-### Water Level Plot
+### Water Table Plot
 
 ```{r}
 #changes wells in wells select input box if slope slider values change
@@ -177,20 +169,15 @@ observeEvent(input$selectAllWellsBox, {
                                     input$aspect[1], input$aspect[2], 
                                     input$hpu))})})
 
-# Waits for plot btn to choose selected wells
-wells <- eventReactive(input$plot_btn, {input$select_wells})
-
 # observes for brushing
 observeEvent(input$wl_dblclick, {
   brush <- input$wl_brush
   if (!is.null(brush))
-    final_dates$x <- c(brush$xmin, brush$xmax)
-  else
-    final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
-  
-  updateDateRangeInput(session, input = "date_range", label = NULL, 
+    updateDateRangeInput(session, input = "date_range", label = NULL, 
                     end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
                     start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
+  else
+    final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
 })
 
 plotOutput("water_level", dblclick = "wl_dblclick", 
@@ -204,8 +191,10 @@ output$water_level <- renderPlot({
     )
   
   # subsets the well data by selected wells and date range
-  selected_well_data <- well_data %>% filter(Well == wells()) %>% 
+  selected_well_data <- well_data %>% filter(Well == input$select_wells) %>% 
     filter(between(date, final_dates$x[1], final_dates$x[2]))
+  
+  subseted_data$x <- selected_well_data
   
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
@@ -222,6 +211,8 @@ Row {data-height=250}
 
 ```{r}
 renderPlot({
+  
+  # Filters the dates
   discharge_trim <- discharge_data %>% filter(between(as.POSIXct(Date), 
                                                 final_dates$x[1],
                                                 final_dates$x[2]))
@@ -230,7 +221,10 @@ renderPlot({
     geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
     xlab(element_blank()) + theme(text = element_text(size=input$mag))
   
-  if(input$log) d_plot <- d_plot + scale_y_log10() 
+  # Changes the y-axis to a log
+  if(input$log) 
+    d_plot <- d_plot + scale_y_log10() 
+  
   d_plot
 })
 ```
@@ -257,7 +251,7 @@ getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp,
 
 # Pop up box if user clicks "Show App User Guide"
 # <br> creates a new line
-#https://www.w3schools.com/tags/default.asp this link will help you with html inside 
+#https://www.w3schools.com/tags/default.asp this link help you with html inside 
   observeEvent(input$appGuide, {
     showModal(modalDialog(
       title = "App Instructions:",
