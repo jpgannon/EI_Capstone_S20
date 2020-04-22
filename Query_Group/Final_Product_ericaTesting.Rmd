@@ -46,6 +46,16 @@ sliderInput("slope", "Select a slope range (degree incline)", min = 3.96, max = 
 sliderInput("aspect", "Select an aspect range (compass degrees)", min = 0.05, max = 344.6,
             value = c(0.05, 344.6), ticks = TRUE, dragRange = TRUE)
 
+#make a slider input for TWI
+sliderInput("twi", "Select a TWI range", 
+            min = min(well_info_data$TWI), max = max(well_info_data$TWI), 
+            value = c( min(well_info_data$TWI),max(well_info_data$TWI)),
+            ticks = TRUE, dragRange = TRUE)
+
+#make a slider input for UAA
+
+#make a slider input for distance to streams
+
 #make a slider widget for pipe height
 checkboxGroupInput("wellDepth", "Select y for deep wells and n for shallow wells",
                    choices = unique(hpu_data$deep_well),
@@ -118,21 +128,28 @@ observeEvent(input$slope, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu, input$wellDepth), selected = NULL)})
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]), selected = NULL)})
 
 #changes wells in wells select input box if aspect slider values change
 observeEvent(input$aspect, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu, input$wellDepth), selected = NULL)})
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]), selected = NULL)})
+
+#changes wells in wells select input box if twi slider values change 
+observeEvent(input$twi, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                          input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]), selected = NULL)})
 
 #changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu, input$wellDepth))})
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]))})
 
 
 #changes wells in wells select input box if pipe height slider values change
@@ -140,7 +157,7 @@ observeEvent(input$wellDepth, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu, input$wellDepth))})
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]))})
 
 #provides functionality to check box that allows user to add all wells 
 #currently in the wells list to the graph
@@ -149,7 +166,7 @@ observeEvent(input$selectAllWellsBox, {
                     selected = if(input$selectAllWellsBox == TRUE) {
                       c(getWellList(input$slope[1], input$slope[2], 
                                           input$aspect[1], input$aspect[2], 
-                                          input$hpu, input$wellDepth))})})
+                                          input$hpu, input$wellDepth, input$twi[1], input$twi[2]))})})
 #the following functions make it so that the select all wells button goes back to being unselected when something changes
 #observeEvent(input$slope, {
 #  updateSelectInput(session, input = "selectAllWellsBox", selected = character(0), choices = character(0), value = FALSE)
@@ -203,7 +220,7 @@ renderPlot({
 
 ```{r}
 #helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
-getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList, depthValsList) { 
+getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList, depthValsList, minTwi, maxTwi) { 
     #makes list of wells that fit slope and aspect selected by the sliders
     saWells <- slope_asp_data %>% 
       filter(between(Slope,minValSlope, maxValSlope), 
@@ -220,11 +237,17 @@ getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsL
       subset(deep_well %in% depthValsList) %>% 
       select(Well)
       
+    #filters data from in the well_info_data list
+    wellInfoWells <- well_info_data %>%
+      filter(between(TWI, minTwi, maxTwi)) %>% 
+      select(Well)
+    print(wellInfoWells)
     #makes list of wells that are in both the slope/aspect list and the HPU list
-    tempIntersect <- intersect(hpuWells, saWells)
+    tempIntersect1 <- intersect(hpuWells, saWells) 
     
+    tempIntersect2 <- intersect(tempIntersect1, wellInfoWells)
     #makes list of wells that are in both the slope/aspect list and the HPU list, and the pipeWells list
-    combWells <- intersect(tempIntersect, depthWells)
+    combWells <- intersect(tempIntersect2, depthWells)
     
     #returns filtered wells list
     return(t(combWells))
