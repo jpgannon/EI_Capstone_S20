@@ -90,7 +90,7 @@ server <- function(input, output){
              <b> 7. View Data Table </b> <br>
              Check to view a table of the water depths for well 1 and well 2 below the plot.<br>
              <br>
-             <b> 8. Different Main Panel Tabs </b> <br>
+             <b> 8. Main Panel Tabs </b> <br>
              Well Plot: Line plot of well 1 and well 2 water depths over time. <br>
              Scatter Plot: Scatter plot of well 1 and well 2 water depth relationship. <br>
              Data Availability: Image of when each well has measured data. <br>
@@ -401,7 +401,7 @@ server <- function(input, output){
     well_data <- Dataset()
     result <- ggplot()  # Initializing empty ggplot
     
-    # Getting start and end dates to put on plot axis
+    # Getting start and end dates to put on plot subtitle
     start_date <- well_data %>% 
       arrange(Date_Time)
     start_date <- start_date[1, 1]
@@ -532,7 +532,7 @@ server <- function(input, output){
         theme_bw(base_size = 20)
       
     }
-    return(result)  # return ggplot object and graphing settings
+    return(result)  # return ggplot object and settings
   })
   
   # Observes for brushing to change date_range
@@ -545,18 +545,18 @@ server <- function(input, output){
     }
   })
   
-  # Plot output
+  # "Wells Plot"  tab output
   output$PlotWells <- renderPlot({
     create_plot()      
   }
   )
   
-  # Plots data availability chart in sidebar when "Show Data Availability" is pressed
+  # "Show Data Availability" tab image
   output$PlotDataAvailability <- renderImage({
     list(src = "data_availability_chart.png")
   }, deleteFile = FALSE)
   
-  # Plots a scatterplot of well 1 and well 2 water depth relationship when "Show Scatterplot" is pressed
+  # "Show Scatterplot" tab plot
   output$PlotScatter <- renderPlot({
     Well_1_data <- BlankToNA()
     Well_2_data <- Well_2_input()
