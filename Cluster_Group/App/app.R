@@ -207,7 +207,8 @@ server <- function(input, output){
                and requested to make three apps that allowed for better data processing, subsetting, and visualization of water table data from Watershed 3 in
                 the Hubbard Brook Experimental Forest. <br>
                 This app was made by: <br>
-                <b> Tri Le, Robert Coulter, Lily Chen, and Lauren Boesch </b>"
+                <b> Tri Le, Robert Coulter, Lily Chen, and Lauren Boesch </b> <br> <br>
+                <b> Git and code: <br> </b> https://github.com/jpgannon/EI_Capstone_S20/tree/master/Cluster_Group"
       )
     ))
   })
