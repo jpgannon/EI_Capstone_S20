@@ -2,9 +2,9 @@
 title: "Watershed Data Exploration Tool"
 output: 
   flexdashboard::flex_dashboard:
-    vertical_layout: scroll
     orientation: rows
     source_code: embed
+    theme: spacelab
 runtime: shiny
 ---
   
@@ -40,8 +40,8 @@ well_info_data <- read_csv("raster_extracted_data.csv")
 ################################################################################
 
 well_vals <- reactiveValues(
-  slope = c(3.963356, 28.42197), asp = c(0.055854, 344.6115), 
-  twi = c(5.091865, 13.30638), uaa = c(0, 0.631029), hpu = unique(hpu_data$HPU),
+  slope = c(3, 29), asp = c(0, 360), twi = c(5, 14), 
+  uaa = c(0, 1), dstream = c(0, 83), hpu = unique(hpu_data$HPU), 
   wdepth = unique(hpu_data$deep_well)
   )
 
@@ -57,8 +57,9 @@ getWellList <- function() {
   
   tuWells <- well_info_data %>% 
     filter(between(TWI, well_vals$twi[1], well_vals$twi[2]), 
-           between(UAA_Weighted, well_vals$uaa[1], well_vals$uaa[2])) %>% 
-    select(Well)
+           between(UAA_Weighted, well_vals$uaa[1], well_vals$uaa[2]),
+           between(DistanceToStreams, well_vals$dstream[1], 
+                   well_vals$dstream[2])) %>% select(Well)
     
   #makes list of wells that fit HPU selected by user 
   hpuWells <- hpu_data %>% subset(HPU %in% well_vals$hpu) %>% select(Well)
@@ -116,6 +117,13 @@ observeEvent(input$twi, {
                     choices = getWellList(), selected = NULL)
   })
 
+# changes wells in wells select input box if stream slider values change
+observeEvent(input$distStream, {
+  well_vals$dstream <- c(input$distStream[1], input$distStream[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)})
+
 # changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
   well_vals$hpu <- input$hpu
@@ -134,11 +142,9 @@ observeEvent(input$wellDepth, {
 
 #provides functionality to check box that allows user to add all wells 
 #currently in the wells list to the graph
-observeEvent(input$selectAllWellsBox, {
+observeEvent(input$selectAllWells, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    selected = if(input$selectAllWellsBox == TRUE) {
-                      c(getWellList())
-                      })
+                    selected = {c(getWellList())})
   })
 
 # observes for brushing
@@ -168,8 +174,7 @@ observeEvent(input$appGuide, {
 Column {.sidebar}
 --------------------------------------------------------------------------------
 
-If this text isn't here, the appGuide button sticks to the top. Like the margin 
-is for some reason = 0. but yeah lets put a section title here or fix the margin
+Please refer to the App Guide below for instructions.
   
 ```{r}
 ################################################################################
@@ -177,49 +182,52 @@ is for some reason = 0. but yeah lets put a section title here or fix the margin
 ################################################################################
 
 # opens up a read me
-actionButton("appGuide", "Instructions")
+actionButton("appGuide", "App Guide")
 
 # make a slider widget for slope
-sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
-            value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
+sliderInput("slope", "Slope Range:", min = 3, max = 29,
+            value = c(3, 29), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
-            value = c(0.055854, 344.6115), ticks = TRUE, dragRange = TRUE)
+sliderInput("aspect", "Aspect Range:", min = 0, max = 360,
+            value = c(0, 360), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for UAA
-sliderInput("uaa", "Select a UAA range", min = 0, max = 0.631029, 
-            value = c( 0, 0.631029), ticks = TRUE, dragRange = TRUE)
+sliderInput("uaa", "UAA Range:", min = 0, max = 1, 
+            value = c(0, 1), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for TWI
-sliderInput("twi", "Select a TWI range", min = 5.091865, max = 13.30638, 
-            value = c(5.091865, 13.30638), ticks = TRUE, dragRange = TRUE)
+sliderInput("twi", "TWI Range:", min = 5, max = 14, 
+            value = c(5, 14), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for distance to streams
+sliderInput('distStream', "Distance to Stream Range:", min = 0, max = 83, 
+            value = c(0, 83), ticks = TRUE, dragRange = TRUE)
 
 # checkbox group input to select which HPU units they want to see
-checkboxGroupInput("hpu", "Select desired HPU(s):", 
+checkboxGroupInput("hpu", "Select Desired HPU(s):", 
                    choices = unique(hpu_data$HPU), 
                    selected = unique(hpu_data$HPU))
 
-#make a slider widget for pipe height
-checkboxGroupInput("wellDepth", "Select y for deep wells and n for shallow wells",
-                   choices = unique(hpu_data$deep_well),
-                   selected = unique(hpu_data$deep_well))
-
-#Identiy range of precip to highlight
-sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
-            min = 0, max = 100)
+# make a slider widget for pipe height
+checkboxGroupInput("wellDepth", "Select Well Depth:", selected = c("y", "n"), 
+                   choiceNames = c("Deep", "Shallow"), 
+                   choiceValues = c("y", "n"))
 
 # Select multiple wells based on well names
 selectInput("select_wells", "Select Well(s):", choices = wellNames, 
             multiple = TRUE)
 
-#check box that gives user option to select all the wells from the well list
-checkboxInput("selectAllWellsBox", "Select all wells in well list", 
-              value = FALSE, width = NULL)
+# check box that gives user option to select all the wells from the well list
+actionButton("selectAllWells", label =  "Select All Filtered Wells")
 
 # Select a date range
-dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
+dateRangeInput("date_range", "Date Range:", start = "2010-07-01", 
                end = "2018-01-10", format = "mm/dd/yy")
+
+# Identiy range of precip to highlight
+sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
+            min = 0, max = 100)
 
 # log option for discharge y-axis
 checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
@@ -238,6 +246,13 @@ downloadHandler(
   }
 )
 ```
+
+Application authors: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
+[Erica Schermerhorn](), 
+[Eric Rosenthal](),
+[Katie Dunlap](), [Ian Bogucki](),
+[Virginia Tech University](https://cnre.vt.edu/)
+
 
 Row {data-height=250}
 --------------------------------------------------------------------------------
@@ -271,7 +286,8 @@ renderPlot({
     geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity") +
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
     theme(text = element_text(size=input$mag)) + annotation_custom(grob) +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    scale_fill_discrete(name = "Type", labels = c("Rain", "Snow"))
 })
 ```
   
@@ -301,9 +317,15 @@ output$water_level <- renderPlot({
   
   download$data <- selected_well_data
   
+  # Format how total precip will appear on the graph
+  grobDate <- grobTree(textGrob(
+    paste(input$date_range[1], "to", input$date_range[2]), 
+    x = 0.1, y = 0.1, hjust = 0, gp = gpar(col="black", fontsize = input$mag, 
+                                           fontface="italic")))
+  
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
     geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
-    xlab(element_blank()) + theme_classic() + 
+    xlab(element_blank()) + theme_classic() + annotation_custom(grobDate) +
     theme(text = element_text(size=input$mag)) + 
     theme(legend.position = "bottom")
 })
