@@ -42,35 +42,35 @@ Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date rang
   
 ```{r}
 # make a slider widget for slope
-sliderInput("slope", "Select a slope range (degree incline)", min = 3.96, max = 28.4,
+sliderInput("slope", "Select a slope range (degree incline):", min = 3.96, max = 28.4,
             value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Select an aspect range (compass degrees)", min = 0.05, max = 344.6,
+sliderInput("aspect", "Select an aspect range (compass degrees):", min = 0.05, max = 344.6,
             value = c(0.05, 344.6), ticks = TRUE, dragRange = TRUE)
 
 #make a slider input for TWI
-sliderInput("twi", "Select a TWI range", 
+sliderInput("twi", "Select a TWI range:", 
             min = round(min(well_info_data$TWI), 2), max = round(max(well_info_data$TWI), 2), 
             value = c(min(well_info_data$TWI),max(well_info_data$TWI)),
             ticks = TRUE, dragRange = TRUE)
 
 #make a slider input for UAA
-sliderInput("uaa", "Select a UAA range", 
+sliderInput("uaa", "Select a UAA range:", 
             min = round(min(well_info_data$UAA_Weighted), 2), max = round(max(well_info_data$UAA_Weighted), 2), 
             value = c(min(well_info_data$UAA_Weighted),max(well_info_data$UAA_Weighted)),
             ticks = TRUE, dragRange = TRUE)
 
 #make a slider input for distance to streams
-sliderInput('distStream', "Select a distance to stream", 
+sliderInput('distStream', "Select a distance to stream range:", 
             min = round(min(well_info_data$DistanceToStreams), 2), max = round(max(well_info_data$DistanceToStreams), 2), 
             value = c(min(well_info_data$DistanceToStreams), max(well_info_data$DistanceToStreams)),
             ticks = TRUE, dragRange = TRUE)
 
 #make a slider widget for pipe height
-checkboxGroupInput("wellDepth", "Select well depth",
+checkboxGroupInput("wellDepth", "Select well depth:",
                    selected = c("y", "n"), 
-                   choiceNames = c("deep", "shallow"),
+                   choiceNames = c("Deep", "Shallow"),
                    choiceValues = c("y", "n")
                    )
 
@@ -84,7 +84,7 @@ selectInput("select_wells", "Select Well(s):", choices = wellNames,
             multiple = TRUE)
 
 #check box that gives user option to select all the wells from the well list
-actionButton("selectAllWellsBox", label =  "Select all wells in well list")
+actionButton("selectAllWellsBox", label =  "Select all filtered wells")
 
 # Select a date range
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
