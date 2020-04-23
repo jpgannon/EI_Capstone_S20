@@ -69,8 +69,7 @@ sliderInput('distStream', "Select a distance to stream",
 
 #make a slider widget for pipe height
 checkboxGroupInput("wellDepth", "Select well depth",
-                   choices = c("deep", "shallow"),
-                   selected = c("deep", "shallow"), 
+                   selected = c("y", "n"), 
                    choiceNames = c("deep", "shallow"),
                    choiceValues = c("y", "n")
                    )
@@ -85,8 +84,7 @@ selectInput("select_wells", "Select Well(s):", choices = wellNames,
             multiple = TRUE)
 
 #check box that gives user option to select all the wells from the well list
-checkboxInput("selectAllWellsBox", "Select all wells in well list", 
-              value = FALSE, width = NULL)
+actionButton("selectAllWellsBox", label =  "Select all wells in well list")
 
 # Select a date range
 dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
@@ -213,17 +211,14 @@ observeEvent(input$wellDepth, {
 #currently in the wells list to the graph
 observeEvent(input$selectAllWellsBox, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    selected = if(input$selectAllWellsBox == TRUE) {
+                    selected = {
                       c(getWellList(input$slope[1], input$slope[2], 
                                          input$aspect[1], input$aspect[2], 
                                           input$hpu, input$wellDepth, 
                                          input$twi[1], input$twi[2], 
                                          input$uaa[1], input$uaa[2], 
                                          input$distStream[1], input$distStream[2]))})})
-#the following functions make it so that the select all wells button goes back to being unselected when something changes
-#observeEvent(input$slope, {
-#updateSelectInput(session, input = "selectAllWellsBox", selected = character(0), choices = character(0), value = FALSE)
-#})
+
 
 
 # Waits for plot btn to choose selected wells
