@@ -118,3 +118,45 @@ write_csv(allHPUDataClean, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/cap
 ```
 
 
+Cleans the precip and snowmelt 
+```{r}
+
+rawSnow_melt <- read_csv('WatershedSnowWater.csv')
+rawPrecip_dat <- read_csv('WatershedPrecip.csv')
+
+#cleans the snow data 
+Snow_melt <- select(rawSnow_melt, "WINTER", "Date", "STA2") %>%
+  mutate(DATE = as.Date(Date,"%m/%d/%Y")) %>%
+  mutate(STA2 = replace(STA2, STA2 == -99, NA))
+
+#Writes the clean data to a csv file
+write_csv(Snow_melt, 'snow_clean.csv')
+
+#cleans the precip data for the correct watershed (3)
+precipitation <- filter(rawPrecip_dat, watershed == '3')%>%
+  mutate(DATE =  as.Date(DATE,"%m/%d/%Y"))
+
+#Writes the clean data to a csv file
+write_csv(precipitation, 'precip_clean.csv')
+
+#read in files in correct date range
+snow <- read_csv('snow_clean.csv')%>% 
+  filter(DATE > "2007-08-10" & DATE < "2018-10-08")
+precip <- read_csv('precip_clean.csv')%>% 
+  filter(DATE > "2007-08-10" & DATE < "2018-10-08")
+
+
+#join the snow and precip together 
+Snow_tempJoin <- left_join(precip, snow, by = 'DATE') %>%
+  select('DATE', 'Precip', 'STA2') %>%
+  rename(`Snow Melt` = STA2)
+
+#This creates a table that is in the corerct format to do a stacked bar chart
+Snow_temp <- pivot_longer(Snow_tempJoin, cols = c('Precip', `Snow Melt`), names_to = "Type", values_to = "Value") 
+
+
+write_csv(Snow_temp, 'TempSnow_BarData.csv')
+
+
+
+```

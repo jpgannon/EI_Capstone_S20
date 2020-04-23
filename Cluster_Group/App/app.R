@@ -423,7 +423,8 @@ server <- function(input, output){
     # Getting fit from original data
     Well_1_data <- BlankToNA()
     Well_2_data <- Well_2_input()
-    w1 <- Well_1_data[1, 1] %>% 
+    w1 <- Well_1_input()
+    w1 <- w1[1, 1] %>% 
       as.character()
     w2 <- Well_2_data[1, 1] %>% 
       as.character()
@@ -563,7 +564,8 @@ server <- function(input, output){
     Well_2_data <- Well_2_input()
     
     # Names of wells
-    w1 <- Well_1_data[1, 1] %>% 
+    w1 <- Well_1_input()
+    w1 <- w1[1, 1] %>% 
       as.character()
     w2 <- Well_2_data[1, 1] %>% 
       as.character()
