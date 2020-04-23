@@ -75,6 +75,10 @@ getWellList <- function() {
 observeEvent(input$slope, {
   well_vals$slope <- c(input$slope[1], input$slope[2])
   
+  saWells <- slope_asp_data %>% 
+    filter(between(Slope, well_vals$slope[1], well_vals$slope[2]), 
+           between(Aspect, well_vals$asp[1], well_vals$asp[2])) %>% select(Well)
+  
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(), selected = NULL)
   })
