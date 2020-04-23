@@ -31,6 +31,7 @@ well_data <- read_csv("sept2011Data.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 hpu_data <- read_csv("hpuDataClean.csv")
 discharge_data <- read_csv("CleanDischargeData_")
+well_info_data <- read_csv("raster_extracted_data.csv")
 ```
 
 ```{r}
@@ -40,7 +41,8 @@ discharge_data <- read_csv("CleanDischargeData_")
 
 well_vals <- reactiveValues(
   slope = c(3.963356, 28.42197), asp = c(0.055854, 344.6115), 
-  twi = c(NULL, NULL), uaa = c(NULL, NULL), hpu = unique(hpu_data$HPU)
+  twi = c(5.091865, 13.30638), uaa = c(0, 0.631029), hpu = unique(hpu_data$HPU),
+  wdepth = unique(hpu_data$deep_well)
   )
 
 download <- reactiveValues(data = NULL)
@@ -52,15 +54,28 @@ getWellList <- function() {
   saWells <- slope_asp_data %>% 
     filter(between(Slope, well_vals$slope[1], well_vals$slope[2]), 
            between(Aspect, well_vals$asp[1], well_vals$asp[2])) %>% select(Well)
+  
+  tuWells <- well_info_data %>% 
+    filter(between(TWI, well_vals$twi[1], well_vals$twi[2]), 
+           between(UAA_Weighted, well_vals$uaa[1], well_vals$uaa[2])) %>% 
+    select(Well)
     
   #makes list of wells that fit HPU selected by user 
   hpuWells <- hpu_data %>% subset(HPU %in% well_vals$hpu) %>% select(Well)
+  
+  #makes list of wells that fit pipe height selected by user
+  depthWells <- hpu_data %>% subset(deep_well %in% well_vals$wdepth) %>% 
+    select(Well)
     
   #makes list of wells that are in both the slope/aspect list and the HPU list
   combWells <- intersect(hpuWells, saWells)
+  
+  result <- intersect(combWells, tuWells)
+  
+  result1 <- intersect(result, depthWells)
     
   #returns filtered wells list
-  return(t(combWells))
+  return(t(result1))
 }
 ```
 
@@ -69,7 +84,7 @@ getWellList <- function() {
 #                             Observe Events                                   #
 ################################################################################
 
-#changes wells in wells select input box if slope slider values change
+# changes wells in wells select input box if slope slider values change
 observeEvent(input$slope, {
   well_vals$slope <- c(input$slope[1], input$slope[2])
   
@@ -77,7 +92,7 @@ observeEvent(input$slope, {
                     choices = getWellList(), selected = NULL)
   })
 
-#changes wells in wells select input box if aspect slider values change
+# changes wells in wells select input box if aspect slider values change
 observeEvent(input$aspect, {
   well_vals$asp <- c(input$aspect[1], input$aspect[2])
   
@@ -85,7 +100,23 @@ observeEvent(input$aspect, {
                     choices = getWellList(), selected = NULL)
   })
 
-#changes wells in wells select input box if HPU selected box values change
+# changes wells in wells select input box if uaa slider values change
+observeEvent(input$uaa, {
+  well_vals$uaa <- c(input$uaa[1], input$uaa[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if twa slider values change
+observeEvent(input$twi, {
+  well_vals$twa <- c(input$twi[1], input$twi[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
   well_vals$hpu <- input$hpu
   
@@ -93,6 +124,13 @@ observeEvent(input$hpu, {
                     choices = getWellList(), selected = NULL)
   })
 
+# changes wells in wells select input box if well depth values change
+observeEvent(input$wellDepth, {
+  well_vals$wdepth <- input$wellDepth
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
 
 #provides functionality to check box that allows user to add all wells 
 #currently in the wells list to the graph
@@ -149,10 +187,23 @@ sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
 sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
             value = c(0.055854, 344.6115), ticks = TRUE, dragRange = TRUE)
 
+# make a slider input for UAA
+sliderInput("uaa", "Select a UAA range", min = 0, max = 0.631029, 
+            value = c( 0, 0.631029), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for TWI
+sliderInput("twi", "Select a TWI range", min = 5.091865, max = 13.30638, 
+            value = c(5.091865, 13.30638), ticks = TRUE, dragRange = TRUE)
+
 # checkbox group input to select which HPU units they want to see
 checkboxGroupInput("hpu", "Select desired HPU(s):", 
                    choices = unique(hpu_data$HPU), 
                    selected = unique(hpu_data$HPU))
+
+#make a slider widget for pipe height
+checkboxGroupInput("wellDepth", "Select y for deep wells and n for shallow wells",
+                   choices = unique(hpu_data$deep_well),
+                   selected = unique(hpu_data$deep_well))
 
 #Identiy range of precip to highlight
 sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
