@@ -68,9 +68,12 @@ sliderInput('distStream', "Select a distance to stream",
             ticks = TRUE, dragRange = TRUE)
 
 #make a slider widget for pipe height
-checkboxGroupInput("wellDepth", "Select y for deep wells and n for shallow wells",
-                   choices = unique(hpu_data$deep_well),
-                   selected = unique(hpu_data$deep_well))
+checkboxGroupInput("wellDepth", "Select well depth",
+                   choices = c("deep", "shallow"),
+                   selected = c("deep", "shallow"), 
+                   choiceNames = c("deep", "shallow"),
+                   choiceValues = c("y", "n")
+                   )
 
 # checkbox group input to select which HPU units they want to see
 checkboxGroupInput("hpu", "Select desired HPU(s):", 
