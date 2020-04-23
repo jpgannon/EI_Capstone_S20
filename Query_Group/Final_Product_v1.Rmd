@@ -247,7 +247,7 @@ downloadHandler(
 )
 ```
 
-Application authors: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
+Site Developers: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
 [Erica Schermerhorn](), 
 [Eric Rosenthal](),
 [Katie Dunlap](), [Ian Bogucki](),
