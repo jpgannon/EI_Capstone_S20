@@ -88,8 +88,8 @@ map <- leaflet(well_locations) %>%
   addPolylines(data = ws3streams, color = streams_col, group = "Streams") %>%
   addCircleMarkers(lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
              color = "Black", popup = paste("Well ID:", well_locations$Well,
-                                             "Distance to Streams:", well_locations$DistanceToStreams, 
-                                            "Distance to Bedrock:", well_locations$DistanceToBedrock,
+                                             "Distance to Streams (m):", well_locations$DistanceToStreams, 
+                                            "Distance to Bedrock (m):", well_locations$DistanceToBedrock,
                                             "TWI:", well_locations$TWI,
                                              "Slope:", well_locations$Slope,
                                             "UAA:", well_locations$UAA_Weighted)) %>%
