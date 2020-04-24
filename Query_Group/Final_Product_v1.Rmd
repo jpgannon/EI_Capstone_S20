@@ -226,8 +226,8 @@ dateRangeInput("date_range", "Date Range:", start = "2010-07-01",
                end = "2018-01-10", format = "mm/dd/yy")
 
 # Identiy range of precip to highlight
-sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
-            min = 0, max = 100)
+sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 0), 
+            min = 0, max = 150)
 
 # log option for discharge y-axis
 checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
