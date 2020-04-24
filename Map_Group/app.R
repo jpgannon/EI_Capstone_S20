@@ -5,8 +5,8 @@ library(leaflet)
 library(sf)
 library(shinythemes)
 library(raster)
-library(htmltools)
 library(leaflet.extras)
+
 #library(rgdal)
 
 
@@ -23,15 +23,19 @@ ui <- fluidPage(
   sidebarLayout(
     position = "left",
     sidebarPanel(
-      actionButton("appGuide", "Show App User Guide"),
-      h5("Precipiation, streamflow, and water table level for watershed 3 at the Hubbard Brook Experimental Forest"),
-      h5(strong("Location:"), "White Mountain National Forest, NH, USA"),
-      h5(strong("Forest type:"), "Northern hardwood"),
-      h5(strong("Area:"), "42.4 ha"),
-      h5(strong("Elevation:"), "527-732 m"),
-      h5(strong("Climate:"), "Long, cold winters and mild to cool summers"),
+      
+      h6("Precipitation, streamflow, and water table level for watershed 3 of the Hubbard Brook Experimental Forest"),
+      h6(strong("Location:"), "White Mountain National Forest, NH, USA"),
+      h6(strong("Forest type:"), "Northern hardwood"),
+      h6(strong("Area:"), "104.71 acres (42.4 ha)"),
+      h6(strong("Elevation:"), "527-732 m"),
+      h6(strong("Climate:"), "Temperate continental"),
       h5(strong("To Zoom: On any plot, click and drag and then double click. 
                       Double click again to zoom to full extent.")),
+      
+      #change the size of the text in the plot using a slider
+      sliderInput(inputId = "mag", label = "Plot text size.", min = 11, max = 24, value = 12),
+      
       
       #Creates calender to select date range
       dateRangeInput("date", "Select date range:", start = "2007-08-10", end = "2018-10-08",
@@ -40,8 +44,13 @@ ui <- fluidPage(
       textInput("well_input", "Enter well names with spaces in between or select from map",
                 value = "JD29"),
       
+      
       # Download Button
       downloadButton("downloadData", "Download"),
+      actionButton("appGuide", "Show App User Guide"),
+      
+      #adds blank line to separate action buttons from map
+      h6(""),
       
       #plots the map
       leafletOutput("map")),
@@ -58,13 +67,13 @@ ui <- fluidPage(
                brush = brushOpts(
                  id = "plot1_brush",
                  resetOnNew = TRUE)),
-    plotOutput("wellplot", width = "90%", height = "200px",
+    plotOutput("wellplot", width = "90%", height = "225px",
                dblclick = "plot1_dblclick",
                brush = brushOpts(
                  id = "plot1_brush",
                  resetOnNew = TRUE
                )),
-    plotOutput("weirplot",width = "90%", height = "200px",
+    plotOutput("weirplot",width = "90%", height = "225px",
                dblclick = "plot1_dblclick",
                brush = brushOpts(
                  id = "plot1_brush",
@@ -90,26 +99,9 @@ server <- function(input, output, session) {
   
   #creates date range
   ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
+  maxrange <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
   
-  #Updates date range when date is selected
-  observeEvent(input$date, {
-    ranges$x <- c(input$date[1], input$date[2])
-  })
-  
-  # When a double-click happens, check if there's a brush on the plot.
-  # If so, zoom to the brush bounds; if not, reset the zoom.
-  observeEvent(input$plot1_dblclick, {
-    brush <- input$plot1_brush
-    if (!is.null(brush)) {
-      ranges$x <- c(brush$xmin, brush$xmax)
-      
-    } else {
-      ranges$x <- c(input$date[1], input$date[2])
-    }
-  }
-  )
-  
-  
+
   
   #Creates water table plot
   output$wellplot <- renderPlot({
@@ -124,14 +116,14 @@ server <- function(input, output, session) {
       geom_line()+
       scale_y_reverse()+
       ylab("Water Table Depth (cm)")+
-      xlab("Date") +
       coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
       theme_classic()+
-      theme(legend.position = "bottom")
+      theme(legend.position = "bottom") +
+      theme(text = element_text(size=input$mag)) +
+      theme(axis.title.x=element_blank()) +
+      theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
     
   })
-  
-  
   
   
   
@@ -143,29 +135,16 @@ server <- function(input, output, session) {
     precip <- precip %>%
       mutate(DATE = as.POSIXct(DATE))
     
-    # #Initializes precip total to overall total for watershed 3
-    # Ptotal <- 83629.9
-    # 
-    # 
-    # #Filter for dates selected
-    # precip_sub <- precip %>%
-    #   filter(between((DATE), ranges$x[1], ranges$x[2]))
-    # 
-    # Ptotal <- round(sum(precip_sub$Precip, na.rm = TRUE),2)
-    # 
-    #     # Create text
-    #     Pgrob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x=0.1,  y=0.1, hjust=0,
-    #                                 gp=gpar(col="black", fontsize=13, fontface="italic")))
     
+   
     (ggplot(data = precip, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
         ylab("Precipitation (mm)")+
-        xlab("Date") +
         scale_y_reverse()+
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
-        theme_classic()) #+
-    #annotation_custom(Pgrob)
-    
+        theme_classic()) +
+        theme(text = element_text(size=input$mag)) +
+        theme(axis.title.x=element_blank())
     
   })
   
@@ -183,9 +162,10 @@ server <- function(input, output, session) {
     (ggplot(data = weir, mapping = aes(x = DATE, y = Streamflow))+
         geom_line()+
         ylab("Weir Discharge (mm)")+
-        xlab("Date") +
         coord_cartesian(xlim = as.POSIXct(ranges$x, origin = "1970-01-01"), expand = FALSE)+
-        theme_classic())
+        theme_classic()) +
+        theme(text = element_text(size=input$mag)) +
+        theme(axis.title.x=element_blank())
     
     
   })
@@ -288,7 +268,30 @@ server <- function(input, output, session) {
       write.csv(make_df(), file, row.names = FALSE)
     })
   
+  #Updates date range when date is selected
+  observeEvent(input$date, {
+    ranges$x <- c(input$date[1], input$date[2])
+  })
   
+  
+  
+  # When a double-click happens, check if there's a brush on the plot.
+  # If so, zoom to the brush bounds; if not, reset the zoom.
+  observeEvent(input$plot1_dblclick, {
+    brush <- input$plot1_brush
+    
+    
+    if (!is.null(brush)) {
+      ranges$x <- c(brush$xmin, brush$xmax)
+    } 
+
+    
+    else {
+      ranges$x <- c(input$date[1], input$date[2])
+    }
+  }
+  )
+
   
 }
 
