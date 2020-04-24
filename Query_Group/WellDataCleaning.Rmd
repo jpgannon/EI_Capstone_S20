@@ -123,3 +123,18 @@ write_csv(Snow_temp, 'TempSnow_BarData.csv')
 
 
 ```
+
+```{r}
+#reads in the weirDischarge Data
+
+weirData <- read_csv("weirDischargeData.csv")
+
+weirData <- weirData %>% 
+  select(-Discharge_cfs) %>% 
+  rename(Date = DATETIME) %>% 
+  mutate(Date = ymd_hms(Date))
+
+
+write_csv(weirData, "CleanDischargeData_")
+```
+
