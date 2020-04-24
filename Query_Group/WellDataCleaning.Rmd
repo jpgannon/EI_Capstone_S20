@@ -47,7 +47,7 @@ allWellData <- do.call(rbind, wellsWNamesList)
 wellDataJoined <- left_join(allWellData, wellInfo, by = "Well")
 
 #set values  > 168 to NA
-wellDataJoined$level <- replace(wellDataJoined$level, wellDataJoined$level > 168, NA)
+wellDataJoined$level <- replace(wellDataJoined$level, wellDataJoined$level > 162, NA)
 
 #replace -99 values with NA
 wellDataJoined$level <-  na_if(wellDataJoined$level, -99)
@@ -58,105 +58,13 @@ finalWellData <- wellDataJoined %>% mutate(level = level - PipeHt)
 #make date a datetime type
 finalWellData <- finalWellData %>% rename(date = date.) %>% mutate(date = ymd_hms(date))
 
-#write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanAllWellData.csv")
+write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanAllWellData.csv")
 
-#read in slope and aspect data for each well
-allSlopeAspData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Map_Group/Well_location_data.csv")
 
-#write_csv(allSlopeAspData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/slope_aspect_well_data.csv")
-#write_csv(finalWellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/cleanWellData2.csv")
-
+#makes a smaller dataset so that the app runs faster for testing
 sept2011WellData <- finalWellData %>% filter(date > "2011-08-31" & date < "2011-10-01")
 
-#write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
 
-```
-
-
-The code below reads in water chemistry data from weir and the water amount at the weir:
-```{r}
-#read in the water chemistry data
-allWaterChemData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/waterChem.csv")
-
-#filters water chemistry data
-waterChemData <- allWaterChemData %>% mutate(Date = as.Date(Date, "%m/%d/%Y")) %>% mutate(Date = as.POSIXct(Date))
-
-#select out all MPs
-waterChemSelected <- waterChemData %>% select(-c('Notes', 'Na-MP', 'Mg-MP', 'Al-MP', 'Si-MP', 'K-MP', 'Ca-MP', 'Mn-MP', 'Fe-MP', 'P-MP', 'Zn-MP', 'Rb-MP', 'Sr-MP', 'Ba-MP', 'Pb-MP')) %>% mutate(pH = as.numeric(pH)) %>% group_by(Site) %>% group_by(Date)
-
-waterChemSelected = waterChemSelected[-c(0:9),]
-
-#%>% summarize(pHAvg = mean(as.numeric(pH)), NaAvg = mean('Na mg/L'), MgAvg = mean('Mg mg/L'), AlAvg = mean('Al mg/L'), SiAvg = mean('Si mg/L'), KAvg = mean('K mg/L'), CaAvg = mean('Ca mg/L'), MnAvg = mean('Mn mg/L'), FeAvg = mean('Fe mg/L'), FAvg = mean('F mg/L'), ClAvg = mean('Cl mg/L'), NO3Avg = mean('NO3 mg/L'), SO4Avg = mean('SO4 mg/L'), DOCAvg = mean('DOC mg/L'), TDNAvg = mean('TDN mg/L'), NH4Avg = mean('NH4 mg N/L'), AlmAvg = mean('Alm mg/L'), AloAvg = mean('Alo mg/L'))
-
-#writes filtered data to csv
-write_csv(waterChemSelected, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/waterChemData.csv")
-```
-
-
-Combines and filters weir data:
-```{r}
-allWeirEarlyData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/w3_stmflow_1957-2012.csv")
-allWeirLaterData <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/w3_stmflow_2013-2017_5min.csv")
-
-#make sure that the columns from both tables match up
-weirEarlyData <- allWeirEarlyData %>% drop_na(DATETIME)
-weirLaterData <- allWeirLaterData %>% drop_na(DATETIME) %>% select(-Flag)
-
-#add both tables together by column names
-allWeirData <- rbind(weirEarlyData, weirLaterData) %>% drop_na() %>% filter(WS == 3)
-
-#write_csv(allWeirData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/weirDischargeData.csv")
-
-ggplot(allWeirData, aes(DATETIME, Gage_ft)) + geom_line() + labs(title = "Weir Gage Ft over time", x = "Date")
-```
-
-Reads in HPU data and writes it in helpful format
-```{r}
-allHPUdataRaw <- read_csv("C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/legacy_well_inventory_JP_update.csv")
-allHPUDataClean <- allHPUdataRaw %>% rename(deep_well = `Deep Well`) %>% select(c(Well, HPU, deep_well)) %>% na.omit()
-write_csv(allHPUDataClean, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/hpuDataClean.csv")
-```
-
-
-Cleans the precip and snowmelt 
-```{r}
-
-rawSnow_melt <- read_csv('WatershedSnowWater.csv')
-rawPrecip_dat <- read_csv('WatershedPrecip.csv')
-
-#cleans the snow data 
-Snow_melt <- select(rawSnow_melt, "WINTER", "Date", "STA2") %>%
-  mutate(DATE = as.Date(Date,"%m/%d/%Y")) %>%
-  mutate(STA2 = replace(STA2, STA2 == -99, NA))
-
-#Writes the clean data to a csv file
-write_csv(Snow_melt, 'snow_clean.csv')
-
-#cleans the precip data for the correct watershed (3)
-precipitation <- filter(rawPrecip_dat, watershed == '3')%>%
-  mutate(DATE =  as.Date(DATE,"%m/%d/%Y"))
-
-#Writes the clean data to a csv file
-write_csv(precipitation, 'precip_clean.csv')
-
-#read in files in correct date range
-snow <- read_csv('snow_clean.csv')%>% 
-  filter(DATE > "2007-08-10" & DATE < "2018-10-08")
-precip <- read_csv('precip_clean.csv')%>% 
-  filter(DATE > "2007-08-10" & DATE < "2018-10-08")
-
-
-#join the snow and precip together 
-Snow_tempJoin <- left_join(precip, snow, by = 'DATE') %>%
-  select('DATE', 'Precip', 'STA2') %>%
-  rename(`Snow Melt` = STA2)
-
-#This creates a table that is in the corerct format to do a stacked bar chart
-Snow_temp <- pivot_longer(Snow_tempJoin, cols = c('Precip', `Snow Melt`), names_to = "Type", values_to = "Value") 
-
-
-write_csv(Snow_temp, 'TempSnow_BarData.csv')
-
-
+write_csv(sept2011WellData, "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/EI_Capstone_S20/Query_Group/sept2011Data.csv")
 
 ```
