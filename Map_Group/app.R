@@ -1,3 +1,15 @@
+# A shiny web app to explore the water table, precipitation, and discharge record
+# of watershed 3 at the Hubbard Brook Experimental Forest in North Woodstock, NH
+# Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
 library(shiny)
 library(tidyverse)
 library(lubridate)
@@ -11,7 +23,7 @@ library(leaflet.extras)
 
 
 
-# Define UI for application that plots wells for a specific time period
+# Define UI for application
 ui <- fluidPage(
   
   #Set theme
@@ -24,6 +36,7 @@ ui <- fluidPage(
     position = "left",
     sidebarPanel(
       
+      #Creates text for general information
       h6("Precipitation, streamflow, and water table level for watershed 3 of the Hubbard Brook Experimental Forest"),
       h6(strong("Location:"), "White Mountain National Forest, NH, USA"),
       h6(strong("Forest type:"), "Northern hardwood"),
@@ -45,9 +58,11 @@ ui <- fluidPage(
                 value = "JD29"),
       
       
-      # Download Button
+      # Creates download, app guide, and FAQ buttons 
       downloadButton("downloadData", "Download"),
-      actionButton("appGuide", "Show App User Guide"),
+      h6(""),
+      actionButton("appGuide", "App User Guide"),
+      actionButton("background", "App Background Information"),
       
       #adds blank line to separate action buttons from map
       h6(""),
@@ -83,7 +98,7 @@ ui <- fluidPage(
   )))
 
 
-#define server logic to draw line plot
+#define server logic
 server <- function(input, output, session) {
   
   setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
@@ -291,6 +306,70 @@ server <- function(input, output, session) {
     }
   }
   )
+  
+  # Pop up box if user clicks "App User Guide"
+  observeEvent(input$appGuide, {
+    showModal(modalDialog(
+      title = "How To Use the App:",
+      HTML("<b> 1. Set date range </b> <br>
+        Select range via calender, or type in yyyy-mm-dd format <br> 
+          <b> 2. Select a Well </b> <br>
+            You can select wells to plot via the interactive map by clicking on the well or just typing in the well name with spaces between. <br>
+            If you select too many wells you can erase with the backspace. <br>
+          <b> 4. View the plots </b> <br>
+          <b> 5. Brushing to zoom in on plot </b> <br>
+          Click and drag a box to set x axis range, then double click to zoom to range.  <br>
+          Double click again to reset date to max  date range. </b> <br>
+           <b> 6. Switch layers </b> <br>
+           To change layers on the map, go to layers icon and click to view available layers. <br>
+           Check or uncheck the boxes to turn the layers on or off. </b> <br>
+           <b> 7. Reset Map View </b> <br> 
+           To reset the map, click the button below the zoom buttons on the map. <br>
+          <b> 8. Screenshot map </b> <br>
+          To screenshot the plots/map, use your computer's default screenshotting tool (e.g. Snip & Sketch, Snipping Tool, etc.) <br>
+          <b> 9. Download selected data </b> <br>
+          To download data, follow the steps prior and then click the Download Data button. <br>
+          Navigate to the desired folder on your computer, then name the file and click save."
+      )
+    ))
+  })
+  
+  # Pop up box if user clicks "FAQ"
+  observeEvent(input$background, {
+    showModal(modalDialog(
+      title = "Application Background",
+      HTML("<b> 1. Background of App </b> <br> 
+
+<b> The map shows an overview of watershed 3 and has interactive icons on the map representing the wells in Watershed 3. The user will be able to
+see the map that shows all the wells and then the user can zoom in on a well to get access to information. When looking at data from a well, the user 
+can choose to look at data from a range of days by selecting dates on an interactive calendar. In addition to groundwater measurements, the map 
+will also allow the user to view soil composition in the watershed and to also query multiple parameters such as precipitation and water depth by clicking
+on checkboxes. The plots will include precipitation (upside down car plot), discharge from watershed 3, and water depth for individual wells. Multiple wells 
+can be selected to compare their plots. When looking at the map, the user will be able to turn on different layers showing landscape metrics such as Topographic Wetness Index,
+stream networks, and Upslope Accumulation Area. The user can also select the wells to show this information for individual wells. There will be an export
+button on the plot tab so the user can export the data that was subsetted. <br> <br>
+
+<b> 2. Variables and Units </b> <br>
+
+<b>
+The first optional raster layer that the user can enable is a Topographic Wetness Index (TWI),which shows preferential flow paths of water during storm events. 
+This is a useful raster layer for users because it allows the user to visualize how the water drains down the surrounding slopes into the basin. 
+The second optional raster layer is slope which shows how steep the slopes within the watershed are and can also help the user visualize how the 
+water drains out of the watershed. The third optional raster layer was Upslope Accumulated Area (UAA) which highlights the areas that could produce run off
+to the area of interest which, in this case, is Watershed 3. The fourth optional raster is soil HPU. The final layer is the stream network in the watershed 
+color coded by stream type including ephemeral, intermittent, and perennial streams.The first graph displays daily precipitation in millimeters, 
+the second graph displays groundwater level in centimeters, and the third graph displays daily weir discharge in millimeters. <br> <br>
+
+<b> 3. Attributions </b> <br>
+         
+<b> We would like to acknowledge our team members who worked effortlessly to create this app: Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen, and our 
+unofficial but honorary member Dr. JP Gannon. We also want to thank Dr. Robert Settlage with advanced research computing at VT who got our server up and running. 
+Finally, we want to thank Hubbard Brooke Researchers for collecting and giving us the information we needed to create our app!"
+           
+      )
+    ))
+  })
+  
 
   
 }
