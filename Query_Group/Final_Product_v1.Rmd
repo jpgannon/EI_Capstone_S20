@@ -162,10 +162,30 @@ observeEvent(input$wl_dblclick, {
 observeEvent(input$appGuide, {
   showModal(modalDialog(
     title = "App Instructions:",
-    HTML("type your stuff in here
-    <br>    
-           
-    test new line"
+    HTML("
+    <section>
+      <h3> About Hubbard Brook Experimental Watershed </h3>
+        <p>
+        Hubbard Brook...<br>
+        More stuff...<br>
+        </p>
+    </section>
+    <section>
+      <h3>Why we made this app </h3>
+        <p>
+        We were tasked by...<br>
+        </p>
+    </section>
+    <section>
+      <h3> What our variables mean </h3>
+        <p>
+        Slope: <br>
+        Aspect:<br>
+        HPU: <br>
+        ...<br>
+      </p>
+    </section>
+    "
     )
     ))
   })
@@ -185,11 +205,11 @@ Please refer to the App Guide below for instructions.
 actionButton("appGuide", "App Guide")
 
 # make a slider widget for slope
-sliderInput("slope", "Slope Range:", min = 3, max = 29,
+sliderInput("slope", "Slope Range (degree incline):", min = 3, max = 29,
             value = c(3, 29), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Aspect Range:", min = 0, max = 360,
+sliderInput("aspect", "Aspect Range (compass degrees):", min = 0, max = 360,
             value = c(0, 360), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for UAA
@@ -201,7 +221,7 @@ sliderInput("twi", "TWI Range:", min = 5, max = 14,
             value = c(5, 14), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for distance to streams
-sliderInput('distStream', "Distance to Stream Range:", min = 0, max = 83, 
+sliderInput('distStream', "Distance to Stream (m) Range:", min = 0, max = 83, 
             value = c(0, 83), ticks = TRUE, dragRange = TRUE)
 
 # checkbox group input to select which HPU units they want to see
@@ -230,13 +250,13 @@ sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 0),
             min = 0, max = 150)
 
 # log option for discharge y-axis
-checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
+checkboxInput(inputId = "log", label = "Log discharge y axis", value = FALSE)
 
 # slider for plot text size
-sliderInput(inputId = "mag", "Plot text size.", min = 10, max = 24, value = 10)
+sliderInput(inputId = "mag", "Plot text size", min = 10, max = 24, value = 10)
 
 # downloads filtered data
-downloadButton("downloadData", "Download")
+downloadButton("downloadData", "Download Data")
 
 downloadHandler(
   filename = "Water_Level.csv",
@@ -248,10 +268,10 @@ downloadHandler(
 ```
 
 Site Developers: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
-[Erica Schermerhorn](), 
+[Erica Schermerhorn](erica16@vt.edu), 
 [Eric Rosenthal](),
 [Katie Dunlap](), [Ian Bogucki](),
-[Virginia Tech University](https://cnre.vt.edu/)
+[Virginia Tech](https://vt.edu/)
 
 
 Row {data-height=250}
