@@ -83,6 +83,11 @@ write_csv(sept2011WellData, paste0(userFilePath, "cleanData/sept2011Data.csv"))
 
 Cleans the precip and snowmelt 
 ```{r}
+setwd(userFilePath)
+#makes a clean data folder if not already there
+if (!file.exists("cleanData")){
+  dir.create("cleanData")
+}
 
 rawSnow_melt <- read_csv('WatershedSnowWater.csv')
 rawPrecip_dat <- read_csv('WatershedPrecip.csv')
@@ -93,14 +98,14 @@ Snow_melt <- select(rawSnow_melt, "WINTER", "Date", "STA2") %>%
   mutate(STA2 = replace(STA2, STA2 == -99, NA))
 
 #Writes the clean data to a csv file
-write_csv(Snow_melt, 'snow_clean.csv')
+write_csv(Snow_melt, 'cleanData/snow_clean.csv')
 
 #cleans the precip data for the correct watershed (3)
 precipitation <- filter(rawPrecip_dat, watershed == '3')%>%
   mutate(DATE =  as.Date(DATE,"%m/%d/%Y"))
 
 #Writes the clean data to a csv file
-write_csv(precipitation, 'precip_clean.csv')
+write_csv(precipitation, 'cleanData/precip_clean.csv')
 
 #read in files in correct date range
 snow <- read_csv('snow_clean.csv')%>% 
@@ -118,15 +123,20 @@ Snow_tempJoin <- left_join(precip, snow, by = 'DATE') %>%
 Snow_temp <- pivot_longer(Snow_tempJoin, cols = c('Precip', `Snow Melt`), names_to = "Type", values_to = "Value") 
 
 
-write_csv(Snow_temp, 'TempSnow_BarData.csv')
+write_csv(Snow_temp, 'cleanData/TempSnow_BarData.csv')
 
 
 
 ```
-
+Reads in and cleans the weir discharge data
 ```{r}
-#reads in the weirDischarge Data
+setwd(userFilePath)
+#makes a clean data folder if not already there
+if (!file.exists("cleanData")){
+  dir.create("cleanData")
+}
 
+#reads in the weirDischarge Data
 weirData <- read_csv("weirDischargeData.csv")
 
 weirData <- weirData %>% 
@@ -135,6 +145,6 @@ weirData <- weirData %>%
   mutate(Date = ymd_hms(Date))
 
 
-write_csv(weirData, "CleanDischargeData_")
+write_csv(weirData, "cleanData/CleanDischargeData_")
 ```
 
