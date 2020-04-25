@@ -158,33 +158,46 @@ observeEvent(input$wl_dblclick, {
 
 # Pop up box if user clicks "Show App User Guide"
 # <br> creates a new line
-#https://www.w3schools.com/tags/default.asp this link help you with html inside 
+#<p>https://www.w3schools.com/tags/default.asp this link help you with html inside 
 observeEvent(input$appGuide, {
   showModal(modalDialog(
-    title = "App Instructions:",
+    title = "App Guide",
+    size = "l",
     HTML("
-    <section>
-      <h3> About Hubbard Brook Experimental Watershed </h3>
+The Hubbard Brook Experimental Forest has been an important site for researching groundwater behavior since its establishment in 1955 by the USDA Forest Service, located in the White Mountains of New Hampshire. For the past 20 years, scientists have been collecting data on groundwater levels throughout the entire watershed through a collection of wells. Researchers need a way to easily view and study the plethora of data being collected. This project aims to clean the data and create a tool for researchers to view, compare, and study the dataset of well water levels in Watershed 3, a subset of the Hubbard Brook Experimental Forest. <br>
+        <section>
+     <h3> User Guide </h3>
         <p>
-        Hubbard Brook...<br>
-        More stuff...<br>
-        </p>
-    </section>
-    <section>
-      <h3>Why we made this app </h3>
-        <p>
-        We were tasked by...<br>
-        </p>
-    </section>
-    <section>
-      <h3> What our variables mean </h3>
-        <p>
-        Slope: <br>
-        Aspect:<br>
-        HPU: <br>
-        ...<br>
-      </p>
-    </section>
+This web application allows users to subset these wells by parameters such as a specific name, date range, or by well information like slope, aspect, and hydropedological unit. This is then displayed in the main Well Water levels graph. Precipitation and weir discharge level graphs are also displayed.<br>
+<p>
+<h4> Well Subsetting </h4>
+The left sidebar column is where the user can subset and define the following parameters they would like to visualize:<br>
+<p>
+Slope Range - slope of the ground that an individual well is on; measured in degrees <br>
+Aspect Range - compass direction the slope is facing; measured in degrees <br>
+UAA Range - (upslope accumulated area) area of land draining to a particular point in the landscape <br>
+TWI Range - (topographic wetness index) steady state index of how wet the soil is at that well <br>
+Distance to Stream Range - distance to closest stream from that well; measured in meters <br>
+Select Desired HPU(s) - (hydropedological units) specific soil types <br>
+Select Well Depth - depth of the well <br>
+<p>
+Select Well(s) & Select All Filtered Wells - All of the above inputs result in a subsetted selection of wells to plot. The user can then select all the wells that fit within the search parameters or individually select a well. <br>
+<em>*Note: Each time a parameter is changed the well choices change to fit the new parameters and the well selection resets. </em> <br>
+Date Range - used to select a date range in which to view the filtered wells. This can be changed by clicking the date, then picking a new year, month, and specific date. <br>
+Range of Precip Values to Highlight - used to select a range of precipitation values to highlight in the precipitation plot. These highlighted values will appear blue in the plot. <br>
+Log discharge y axis - show the Y-axis for the Discharge Plot in logarithmic rather than linear. <br>
+Plot text size - used to adjust the text size for the plots for ease of reading. <br>
+Download - used to download the well data that is currently selected into a csv file. <br>
+<em> If there is currently no wells selected and the download button is pressed, then the csv file will be empty. </em> <br>
+<p>
+<h4>Plot Visualization </h4><br>
+The time range of each plot will always match the time range of the two other plots. The current date range will be shown as a label on the Water Table Plot. <br>
+Precipitation Plot - shows the amount of precipitation (rain and snow) in millimeters per day and it states the total precipitation in the current time frame. <br>
+Water Table Plot - Wells that match the search parameters are shown in this plot and it shows the different water table depths in centimeters of each individual selected wells. The user can zoom into the plot by brushing the section they wish to view and then double clicking. <br>
+Discharge Plot - shows the data collected from the weir at the lowest point of the watershed measuring the amount of water exiting in liters per second.<br>
+<p>
+<p>
+<em> For more information, contact the site developers <em>
     "
     )
     ))
