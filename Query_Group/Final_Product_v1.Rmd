@@ -321,7 +321,7 @@ renderPlot({
     xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
     theme(text = element_text(size=input$mag)) + annotation_custom(grob) +
     theme(legend.position = "bottom") +
-    scale_fill_discrete(name = "Type", labels = c("Rain", "Snow"))
+    scale_fill_discrete(name = "Type", labels = c("Rain", "Snowmelt"))
 })
 ```
   
