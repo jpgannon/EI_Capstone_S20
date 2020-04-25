@@ -164,44 +164,149 @@ observeEvent(input$appGuide, {
     title = "App Guide",
     size ="l",
     HTML("
-The Hubbard Brook Experimental Forest has been an important site for researching groundwater behavior since its establishment in 1955 by the USDA Forest Service, located in the White Mountains of New Hampshire. For the past 20 years, scientists have been collecting data on groundwater levels throughout the entire watershed through a collection of wells. Researchers need a way to easily view and study the plethora of data being collected. This project aims to clean the data and create a tool for researchers to view, compare, and study the dataset of well water levels in Watershed 3, a subset of the Hubbard Brook Experimental Forest. <br>
-        <section>
-     <h2> User Guide </h2>
-        <p>
-This web application allows users to subset these wells by parameters such as a specific name, date range, or by well information like slope, aspect, and hydropedological unit. This is then displayed in the main Well Water levels graph. Precipitation and weir discharge level graphs are also displayed.<br>
-<p>
-<h4> Well Subsetting </h4>
-The left sidebar column is where the user can subset and define the following parameters they would like to visualize:<br>
-<p>
-Slope Range - slope of the ground that an individual well is on; measured in degrees <br>
-Aspect Range - compass direction the slope is facing; measured in degrees <br>
-UAA Range - (upslope accumulated area) area of land draining to a particular point in the landscape <br>
-TWI Range - (topographic wetness index) steady state index of how wet the soil is at that well <br>
-Distance to Stream Range - distance to closest stream from that well; measured in meters <br>
-Select Desired HPU(s) - (hydropedological units) specific soil types <br>
-Select Well Depth - depth of the well <br>
-<p>
-Select Well(s) & Select All Filtered Wells - All of the above inputs result in a subsetted selection of wells to plot. The user can then select all the wells that fit within the search parameters or individually select a well. <br>
-<em>*Note: Each time a parameter is changed the well choices change to fit the new parameters and the well selection resets. </em> <br>
-Date Range - used to select a date range in which to view the filtered wells. This can be changed by clicking the date, then picking a new year, month, and specific date. <br> <br>
-<h4>Plot Modification </h4>
-Range of Precip Values to Highlight - used to select a range of precipitation values to highlight in the precipitation plot. These highlighted values will appear blue in the plot. <br>
-Log discharge y axis - show the Y-axis for the Discharge Plot in logarithmic rather than linear. <br>
-Plot text size - used to adjust the text size for the plots for ease of reading. <br>
-Download - used to download the well data that is currently selected into a csv file. <br>
-<em> If there are currently no wells selected and the download button is pressed, then the csv file will be empty. </em> <br>
-<p>
-<h4>Plot Visualization </h4><br>
-The time range of each plot will always match the time range of the two other plots. The current date range will be shown as a label on the Water Table Plot. <br>
-Precipitation Plot - shows the amount of precipitation (rain and snow) in millimeters per day and it states the total precipitation in the current time frame. <br>
-Water Table Plot - Wells that match the search parameters are shown in this plot and it shows the different water table depths in centimeters of each individual selected wells. The user can zoom into the plot by brushing the section they wish to view and then double clicking. <br>
-Discharge Plot - shows the data collected from the weir at the lowest point of the watershed measuring the amount of water exiting in liters per second.<br>
-<p>
-<p>
-<em> For more information, contact the site developers <em>
-    "
-    )
-    ))
+    <h2> Background Information </h2>
+    
+    <p>
+    The Hubbard Brook Experimental Forest has been an important site for 
+    researching groundwater behavior since its establishment in 1955 by the USDA
+    Forest Service, located in the White Mountains of New Hampshire. For the 
+    past 20 years, scientists have been collecting data on groundwater levels 
+    throughout the entire watershed through a collection of wells. Researchers 
+    need a way to easily view and study the plethora of data being collected. 
+    This project aims to clean the data and create a tool for researchers to 
+    view, compare, and study the dataset of well water levels in Watershed 3, a 
+    subset of the Hubbard Brook Experimental Forest.
+    </p>
+    
+    <h2> User Guide </h2>
+    
+    <p>
+    This web application allows users to subset these wells by parameters such 
+    as a specific name, date range, or by well information like slope, aspect, 
+    and hydropedological unit. This is then displayed in the main Well Water 
+    levels graph. Precipitation and weir discharge level graphs are also 
+    displayed.
+    </p>
+    
+    <h4> Well Subsetting </h4>
+    
+    <p>
+    The left sidebar column is where the user can subset and define the 
+    following parameters they would like to visualize:
+    </p>
+    
+    <ul>
+      <li>
+      Slope Range - slope of the ground that an individual well is on; measured 
+      in degrees
+      </li>
+      
+      <li>
+      Aspect Range - compass direction the slope is facing; measured in degrees
+      </li>
+      
+      <li>
+      UAA Range - (upslope accumulated area) area of land draining to a 
+      particular point in the landscape
+      </li>
+      
+      <li>
+      TWI Range - (topographic wetness index) steady state index of how wet the 
+      soil is at that well
+      </li>
+      
+      <li>
+      Distance to Stream Range - distance to closest stream from that well; 
+      measured in meters
+      </li>
+      
+      <li>
+      Select Desired HPU(s) - (hydropedological units) specific soil types
+      </li>
+      
+      <li>
+      Select Well Depth - depth of the well
+      </li>
+    </ul>
+    
+    <p>
+    Select Well(s) & Select All Filtered Wells - All of the above inputs result 
+    in a subsetted selection of wells to plot. The user can then select all the 
+    wells that fit within the search parameters using the Select All Filtered 
+    Wells button or individually select a well using the Select Well(s) input 
+    box.
+    </p>
+    
+    <em>
+    *Note: Each time a parameter is changed the well choices change to fit the 
+    new parameters and the well selection resets. 
+    </em>
+    
+    <p>
+    To select a date range in which to view the filtered wells, use the date 
+    range input.
+    </p>
+    
+    <h4> Plot Modification </h4>
+    
+    <ul>
+      <li>
+      Range of Precip Values to Highlight - used to select a range of 
+      precipitation values to highlight in the precipitation plot. These 
+      highlighted values will appear blue in the plot.
+      </li>
+      
+      <li>
+      Log discharge y axis - show the Y-axis for the Discharge Plot in 
+      logarithmic rather than linear.
+      </li>
+      
+      <li>
+      Plot text size - used to adjust the text size for the plots for ease of 
+      reading.
+      </li>
+      
+      <li>
+      Download - used to download the well data that is currently selected into 
+      a csv file.
+      </li>
+    </ul>
+    
+    <em>
+    *Note: If there are currently no wells selected and the download button is 
+    pressed, then the csv file will be empty. 
+    </em>
+    
+    <h4> Plot Visualization </h4>
+    
+    <p>
+    The time range of each plot will always match the time range of the two 
+    other plots. The current date range will be shown as a label on the Water 
+    Table Plot.
+    </p> 
+    
+    <ul>
+      <li>
+      Precipitation Plot - shows the amount of precipitation (rain and snow) in 
+      millimeters per day and it states the total precipitation in the current 
+      time frame.
+      </li>
+      
+      <li>
+      Water Table Plot - Wells that match the search parameters are shown in 
+      this plot and it shows the different water table depths in centimeters of 
+      each individual selected wells. The user can zoom into the plot by 
+      brushing the section they wish to view and then double clicking.
+      </li>
+      
+      <li>
+      Discharge Plot - shows the data collected from the weir at the lowest 
+      point of the watershed measuring the amount of water exiting in liters per 
+      second.
+      </li>
+    </ul>
+    
+    <em> *Note: For more information, contact the site developers </em>")))
   })
 ```
 
@@ -219,24 +324,28 @@ Please refer to the App Guide below for instructions.
 actionButton("appGuide", "App Guide")
 
 # make a slider widget for slope
-sliderInput("slope", "Slope Range (degree incline):", min = 3, max = 29,
-            value = c(3, 29), ticks = TRUE, dragRange = TRUE)
+sliderInput("slope", 
+            span(style="font-size:13px", "Slope Range (degree incline):"), 
+            min = 3, max = 29, value = c(3, 29), ticks = TRUE, dragRange = TRUE)
 
 # make a slider widget for aspect
-sliderInput("aspect", "Aspect Range (compass degrees):", min = 0, max = 360,
-            value = c(0, 360), ticks = TRUE, dragRange = TRUE)
+sliderInput("aspect", 
+            span(style="font-size:13px", "Aspect Range (compass degrees):"), 
+            min = 0, max = 360, value = c(0, 360), ticks = TRUE, 
+            dragRange = TRUE)
 
 # make a slider input for UAA
-sliderInput("uaa", "UAA Range:", min = 0, max = 1, 
+sliderInput("uaa", span(style="font-size:13px", "UAA Range:"), min = 0, max = 1, 
             value = c(0, 1), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for TWI
-sliderInput("twi", "TWI Range:", min = 5, max = 14, 
-            value = c(5, 14), ticks = TRUE, dragRange = TRUE)
+sliderInput("twi", span(style="font-size:13px", "TWI Range:"), min = 5, 
+            max = 14, value = c(5, 14), ticks = TRUE, dragRange = TRUE)
 
 # make a slider input for distance to streams
-sliderInput('distStream', "Distance to Stream (m) Range:", min = 0, max = 83, 
-            value = c(0, 83), ticks = TRUE, dragRange = TRUE)
+sliderInput('distStream', 
+            span(style="font-size:13px", "Distance to Stream (m) Range:"), 
+            min = 0, max = 83, value = c(0, 83), ticks = TRUE, dragRange = TRUE)
 
 # checkbox group input to select which HPU units they want to see
 checkboxGroupInput("hpu", "Select Desired HPU(s):", 
@@ -260,17 +369,21 @@ dateRangeInput("date_range", "Date Range:", start = "2010-07-01",
                end = "2018-01-10", format = "mm/dd/yy")
 
 # Identiy range of precip to highlight
-sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 0), 
-            min = 0, max = 150)
+sliderInput("Prange", 
+            span(style="font-size:13px", "Range of Precip Values to Highlight"), 
+            value = c(0, 0), min = 0, max = 150)
 
 # log option for discharge y-axis
-checkboxInput(inputId = "log", label = "Log discharge y axis", value = FALSE)
+checkboxInput(inputId = "log", 
+              span(style="font-size:13px", "Log discharge y axis"), 
+              value = FALSE)
 
 # slider for plot text size
-sliderInput(inputId = "mag", "Plot text size", min = 10, max = 24, value = 10)
+sliderInput(inputId = "mag", span(style="font-size:13px", "Plot text size"), 
+            min = 10, max = 24, value = 10)
 
 # downloads filtered data
-downloadButton("downloadData", "Download Data")
+downloadButton("downloadData", label = "Download Data")
 
 downloadHandler(
   filename = "Water_Level.csv",
@@ -284,8 +397,7 @@ downloadHandler(
 Site Developers: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
 [Erica Schermerhorn](erica16@vt.edu), 
 [Eric Rosenthal](),
-[Katie Dunlap](), [Ian Bogucki](),
-[Virginia Tech](https://vt.edu/)
+[Katie Dunlap](), [Ian Bogucki]()
 
 
 Row {data-height=250}
