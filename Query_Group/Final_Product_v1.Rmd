@@ -440,7 +440,7 @@ renderPlot({
 Row {data-height=400}
 --------------------------------------------------------------------------------
 
-### Water Table Plot
+### Well Water Level Plot
 
 ```{r}
 ################################################################################
@@ -470,7 +470,7 @@ output$water_level <- renderPlot({
                                            fontface="italic")))
   
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
-    geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
+    geom_line() + scale_y_reverse() + ylab("Water Level (cm)") +
     xlab(element_blank()) + theme_classic() + annotation_custom(grobDate) +
     theme(text = element_text(size=input$mag)) + 
     theme(legend.position = "bottom")
