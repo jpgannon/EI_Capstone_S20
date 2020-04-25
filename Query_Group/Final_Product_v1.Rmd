@@ -162,11 +162,11 @@ observeEvent(input$wl_dblclick, {
 observeEvent(input$appGuide, {
   showModal(modalDialog(
     title = "App Guide",
-    size = "l",
+    size ="l",
     HTML("
 The Hubbard Brook Experimental Forest has been an important site for researching groundwater behavior since its establishment in 1955 by the USDA Forest Service, located in the White Mountains of New Hampshire. For the past 20 years, scientists have been collecting data on groundwater levels throughout the entire watershed through a collection of wells. Researchers need a way to easily view and study the plethora of data being collected. This project aims to clean the data and create a tool for researchers to view, compare, and study the dataset of well water levels in Watershed 3, a subset of the Hubbard Brook Experimental Forest. <br>
         <section>
-     <h3> User Guide </h3>
+     <h2> User Guide </h2>
         <p>
 This web application allows users to subset these wells by parameters such as a specific name, date range, or by well information like slope, aspect, and hydropedological unit. This is then displayed in the main Well Water levels graph. Precipitation and weir discharge level graphs are also displayed.<br>
 <p>
@@ -183,12 +183,13 @@ Select Well Depth - depth of the well <br>
 <p>
 Select Well(s) & Select All Filtered Wells - All of the above inputs result in a subsetted selection of wells to plot. The user can then select all the wells that fit within the search parameters or individually select a well. <br>
 <em>*Note: Each time a parameter is changed the well choices change to fit the new parameters and the well selection resets. </em> <br>
-Date Range - used to select a date range in which to view the filtered wells. This can be changed by clicking the date, then picking a new year, month, and specific date. <br>
+Date Range - used to select a date range in which to view the filtered wells. This can be changed by clicking the date, then picking a new year, month, and specific date. <br> <br>
+<h4>Plot Modification </h4>
 Range of Precip Values to Highlight - used to select a range of precipitation values to highlight in the precipitation plot. These highlighted values will appear blue in the plot. <br>
 Log discharge y axis - show the Y-axis for the Discharge Plot in logarithmic rather than linear. <br>
 Plot text size - used to adjust the text size for the plots for ease of reading. <br>
 Download - used to download the well data that is currently selected into a csv file. <br>
-<em> If there is currently no wells selected and the download button is pressed, then the csv file will be empty. </em> <br>
+<em> If there are currently no wells selected and the download button is pressed, then the csv file will be empty. </em> <br>
 <p>
 <h4>Plot Visualization </h4><br>
 The time range of each plot will always match the time range of the two other plots. The current date range will be shown as a label on the Water Table Plot. <br>
