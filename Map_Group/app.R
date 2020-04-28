@@ -193,13 +193,6 @@ server <- function(input, output, session) {
   well_locations <- read_csv("Well_location_data.csv")
   
   
-  # Load txt file and convert column to character type for the labels
-  well_labels <- well_locations %>%
-    mutate(OBJECTID = as.character(OBJECTID))
-  
-  #Popup labels
-  pop_ups <- c(well_labels$Well, well_labels$PipeHt, well_labels$POINT_X, well_labels$POINT_Y)
-  
   # read in raster file
   twi <- raster('ws3cliptwid.tif')
   
@@ -246,7 +239,7 @@ server <- function(input, output, session) {
   uaa_pal2 <- colorNumeric(palette = "YlOrRd", domain = uaa_vals, na.color = NA)
   
   
- 
+
   # set slope colors for map
   pal_slope <- colorBin("YlOrBr", domain = NULL, bins = 5, na.color = "transparent")
   
@@ -277,7 +270,7 @@ server <- function(input, output, session) {
       #Adds well markers
       addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
-                       popup = paste("Well ID:", well_labels$Well, "<br>",
+                       popup = paste("Well ID:", well_locations$Well, "<br>",
                                      "Distance to Streams (m):", well_locations$DistanceToStreams, "<br>", 
                                      "Distance to Bedrock (m):", well_locations$DistanceToBedrock, "<br" , 
                                      "TWI:", well_locations$TWI, "<br>",
@@ -299,7 +292,7 @@ server <- function(input, output, session) {
                 group = "Upslope Accumulated Area", labFormat = labelFormat(), title = "UAA") %>%
       addLegend(position = 'topright', values = soil_vals, pal = pal_soil2,
                 labFormat = labelFormat(), group = "Soil", title = "Soil HPU") %>%
-      addLayersControl(overlayGroups = c("Streams", "Well markers","Topographic Wetness Index",
+      addLayersControl(overlayGroups = c("Well markers", "Streams", "Topographic Wetness Index",
                                          "Slope", "Soil", "Upslope Accumulated Area"),
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c("Topographic Wetness Index", "Slope", "Upslope Accumulated Area", "Soil", "Streams")) %>%
