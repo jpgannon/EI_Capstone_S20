@@ -21,7 +21,6 @@ library(leaflet.extras)
 
 
 
-
 # Define UI for application
 ui <- fluidPage(
   
@@ -106,7 +105,7 @@ server <- function(input, output, session) {
   
   #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
   
-  #Read in data
+  #Load hydrological data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
@@ -189,35 +188,27 @@ server <- function(input, output, session) {
   })
   
   
-  # Load the txt file for mapping
+  # Load the well text file for mapping
   well_locations <- read_csv("Well_location_data.csv")
   
-  
-  # Load txt file and convert column to character type for the labels
-  well_labels <- well_locations %>%
-    mutate(OBJECTID = as.character(OBJECTID))
-  
-  #Popup labels
-  pop_ups <- c(well_labels$Well, well_labels$PipeHt, well_labels$POINT_X, well_labels$POINT_Y)
-  
-  # read in raster file
+  # Load TWI raster file
   twi <- raster('ws3cliptwid.tif')
   
-  # read in WS3 outline and assign coordinate system
+  # Load watershed outline shapefile and assign coordinate system
   ws3 <- st_read("ws3.shp")
   ws3 <- st_transform(ws3, "+proj=longlat +datum=WGS84 +no_defs")
   
-  # read in WS3 streams 
+  # Load stream network shapefile 
   ws3streams <- st_read("Shapefiles/ws3streams_proj.shp")
   ws3streams <- st_transform(ws3streams, "+proj=longlat +datum=WGS84 +no_defs")
   
-  # read in UAA raster
+  # Load UAA raster
   uaa <- raster("ws3uaab.tif")
   
-  # read in slope
+  # Load slope raster
   ws3slope <- raster("ws3_slope.tif")
   
-  #read in soil hpu
+  #Load soil hpu raster
   soil <- raster("ws3hpu_newallc.tif")
   
    # remove NA's from rasters
@@ -232,14 +223,14 @@ server <- function(input, output, session) {
   # set twi color scale for legend
   twi_pal2 <- colorNumeric(palette = "Blues", domain = vals, na.color = NA)
   
-  #renames stream types for legend
+  # renames stream types for legend
   levels(ws3streams$StrType) <- c("Ephemeral", "Intermittent", "Perennial")
   
-  #set legend/colors for streams
+  # set legend/colors for streams
   streams_col <- colorFactor(topo.colors(3), ws3streams$StrType)
   
 
-  # set UAA colors
+  # set UAA colors for map
   uaa_pal <- colorBin("YlOrRd", domain = NULL, bins = 5, na.color = "transparent")
   
   # set UAA color scale for legend
@@ -254,7 +245,7 @@ server <- function(input, output, session) {
   pal_slope2 <- colorNumeric(palette = "YlOrBr", domain = slope_vals, na.color = NA)
   
 
-  #set soil colors
+  #set soil colors for map
   pal_soil <- colorBin(c("Red", "Yellow", "Green", "Blue"), domain = NULL, bins = 4, na.color = "transparent")
   
   # set soil color scale for legend
@@ -277,7 +268,7 @@ server <- function(input, output, session) {
       #Adds well markers
       addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
-                       popup = paste("Well ID:", well_labels$Well, "<br>",
+                       popup = paste("Well ID:", well_locations$Well, "<br>",
                                      "Distance to Streams (m):", well_locations$DistanceToStreams, "<br>", 
                                      "Distance to Bedrock (m):", well_locations$DistanceToBedrock, "<br" , 
                                      "TWI:", well_locations$TWI, "<br>",
@@ -303,10 +294,10 @@ server <- function(input, output, session) {
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c("Topographic Wetness Index", "Slope", "Upslope Accumulated Area", "Soil", "Streams")) %>%
       
-      #focus map in on Hubbard Brooke's Watershed 3 / zoom level
+      #Set map view
       setView(lng = -71.7187, lat = 43.9578, zoom = 15.1) %>%
       
-      #Resets map view
+      #Reset map view button
       addResetMapButton() 
     
   })
@@ -321,7 +312,6 @@ server <- function(input, output, session) {
  
   
   #Downloadable csv of selected dataset
-  
   make_df <- reactive({
     ID <- strsplit(input$well_input, " ")[[1]] #makes dataframe from user selection of data
     
@@ -433,12 +423,8 @@ Finally, we want to thank Hubbard Brooke Researchers for collecting and giving u
 <b> Source Code: </b> <br>
     https://github.com/jpgannon/EI_Capstone_S20/tree/master/Map_Group"
            
-      )
-    ))
+        )))
   })
-  
-
-  
 }
 
 
