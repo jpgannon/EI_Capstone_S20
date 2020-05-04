@@ -1,3 +1,7 @@
+# This script loads the cleaned well and precipitation data to practice creating time-series graphs
+#
+#Macey O'Neill
+
 library(purrr)
 library(tidyr)
 library(dplyr)
@@ -6,10 +10,9 @@ library(lubridate)
 library(patchwork)
 
 
-setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
+#setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/")
 
 well_data <- read_csv("welldatahourly.csv")
-
 
 
 #Create new variable containing wells being plotted
@@ -63,19 +66,3 @@ wells <- filter(welldata, Well == ID, date >= start, date <= end)
 #stacks plots on top of eachother 
 #grid.arrange(p1, p2, nrow = 2)
 p1 / p2
-
-#calculate mean precip
-avg_prec <- mean(precip_select$Precip)
-avg_prec
-
-#calculate max precip
-max_prec <- max(precip_select$Precip)
-max_prec
-
-
-#calculate mean water depth
-avg_wt <- mean(wells$wtdepth, na.rm = TRUE)
-avg_wt
-
-mean_wt <- max(wells$wtdepth, na.rm = TRUE)
-mean_wt
