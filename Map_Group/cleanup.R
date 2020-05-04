@@ -1,3 +1,7 @@
+# This script loads the hydrological data from Hubbard Brook datasets and cleans the data
+#
+# Macey O'Neill
+
 library(purrr)
 library(tidyr)
 library(dplyr)
@@ -8,7 +12,7 @@ library(stringr)
 
 
 #Set working directory
-setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group")
+#setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group")
 
 #Create a variable that contains the w3well_locations file
 info <- read_csv("w3well_locations.txt")
@@ -16,10 +20,10 @@ info <- read_csv("w3well_locations.txt")
 #create character vector with names of each .csv file that is within the set working directory 
 files <- dir(pattern = ".csv")
 
-welldata <- data_frame(filename = files) %>% # create a data frame
-  # holding the file names
-  mutate(file_contents = map(filename,          # read files into
-                             ~ read_csv(file.path( .))) # a new data column
+#Create new data frame holding the file names
+welldata <- data_frame(filename = files) %>%
+  mutate(file_contents = map(filename,          
+                             ~ read_csv(file.path( .))) 
   )%>%
   unnest(cols = c(file_contents))
 
@@ -31,8 +35,6 @@ welldata$Well <- str_replace(welldata$filename, ".csv", "")
 #renames the date column
 welldata <- welldata %>%
   rename(date = date.)
-
-head(welldata)
 
 #Join W3Well_locations.txt file to the data frame and Keep each row of data assigned to the proper well (i.e. all rows that belong to well A5 will have A5 #in the "Well" column)
 welldata <- left_join(welldata, info, by = "Well")
@@ -64,15 +66,9 @@ hourly$date <- dmy_h(paste(hourly$day, hourly$month, hourly$year, hourly$hour))
 hourly <- hourly %>% ungroup() %>%
   select(Well, date, level, wtdepth) 
 
-#welldatahourly <- aggregate(welldata$level,
-#list(hour = cut(welldata$date, breaks="hour")),
-#mean, na.rm = TRUE)
-
-head(hourly)
 
 #creates new csv file with the dataframe
 write_csv(hourly, "welldatahourly.csv")
-
 
 
 #Read in streamflow data
@@ -84,10 +80,8 @@ stream <- stream %>%
   filter(Watershed == 3) %>% #Filter for watershed 3
   filter(Streamflow != -99)  #Removes -99 (missing values)
 
-
 #Creates new csv with discharge data
 write_csv(stream, "stream_discharge_WS3.csv")
-
 
 
 #Read in precip data
