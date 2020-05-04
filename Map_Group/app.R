@@ -193,6 +193,13 @@ server <- function(input, output, session) {
   well_locations <- read_csv("Well_location_data.csv")
   
   
+  # Load txt file and convert column to character type for the labels
+  well_labels <- well_locations %>%
+    mutate(OBJECTID = as.character(OBJECTID))
+  
+  #Popup labels
+  pop_ups <- c(well_labels$Well, well_labels$PipeHt, well_labels$POINT_X, well_labels$POINT_Y)
+  
   # read in raster file
   twi <- raster('ws3cliptwid.tif')
   
@@ -239,7 +246,7 @@ server <- function(input, output, session) {
   uaa_pal2 <- colorNumeric(palette = "YlOrRd", domain = uaa_vals, na.color = NA)
   
   
-
+ 
   # set slope colors for map
   pal_slope <- colorBin("YlOrBr", domain = NULL, bins = 5, na.color = "transparent")
   
@@ -270,7 +277,7 @@ server <- function(input, output, session) {
       #Adds well markers
       addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
-                       popup = paste("Well ID:", well_locations$Well, "<br>",
+                       popup = paste("Well ID:", well_labels$Well, "<br>",
                                      "Distance to Streams (m):", well_locations$DistanceToStreams, "<br>", 
                                      "Distance to Bedrock (m):", well_locations$DistanceToBedrock, "<br" , 
                                      "TWI:", well_locations$TWI, "<br>",
@@ -292,8 +299,7 @@ server <- function(input, output, session) {
                 group = "Upslope Accumulated Area", labFormat = labelFormat(), title = "UAA") %>%
       addLegend(position = 'topright', values = soil_vals, pal = pal_soil2,
                 labFormat = labelFormat(), group = "Soil", title = "Soil HPU") %>%
-      addLayersControl(overlayGroups = c("Well markers", "Streams", "Topographic Wetness Index",
-                                         "Slope", "Soil", "Upslope Accumulated Area"),
+      addLayersControl(overlayGroups = c("Streams", "Well markers", "Topographic Wetness Index", "Slope", "Soil", "Upslope Accumulated Area"),
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c("Topographic Wetness Index", "Slope", "Upslope Accumulated Area", "Soil", "Streams")) %>%
       
@@ -392,20 +398,18 @@ server <- function(input, output, session) {
   observeEvent(input$background, {
     showModal(modalDialog(
       title = "Application Background",
-      HTML("<b> 1. Background of App </b> <br> 
+      HTML("<b> App Overview </b> <br> 
 
-<b> The map shows an overview of watershed 3 and has interactive icons on the map representing the wells in Watershed 3. The user will be able to
-see the map that shows all the wells and then the user can zoom in on a well to get access to information. When looking at data from a well, the user 
-can choose to look at data from a range of days by selecting dates on an interactive calendar. In addition to groundwater measurements, the map 
-will also allow the user to view soil composition in the watershed and to also query multiple parameters such as precipitation and water depth by clicking
-on checkboxes. The plots will include precipitation (upside down car plot), discharge from watershed 3, and water depth for individual wells. Multiple wells 
-can be selected to compare their plots. When looking at the map, the user will be able to turn on different layers showing landscape metrics such as Topographic Wetness Index,
-stream networks, and Upslope Accumulation Area. The user can also select the wells to show this information for individual wells. There will be an export
-button on the plot tab so the user can export the data that was subsetted. <br> <br>
+The map shows an overview of watershed 3 and has interactive icons representing each well in the watershed. The user may turn on different 
+layers such as slope, Topographic Wetness Index, Soil Hydropedological Unit, Upslope Accumulated Area, and the stream network.
+The user may click on wells on the map to view a popup with information such as the well ID and characteristics associated with the layers.
+To view hydrological time-series data in the plots, the user can choose to subset the data by selecting dates on an interactive calendar. The plots 
+include precipitation (upside down car plot), discharge from watershed 3, and water depth for individual wells. Multiple wells can be selected 
+to compare their measurements. There is also a download button at the bottom of the side panel so the user can export the subsetted data. <br> <br>
 
-<b> 2. Variables and Units </b> <br>
+<b> Variables and Units </b> <br>
 
-<b>
+
 The first optional raster layer that the user can enable is a Topographic Wetness Index (TWI),which shows preferential flow paths of water during storm events. 
 This is a useful raster layer for users because it allows the user to visualize how the water drains down the surrounding slopes into the basin. 
 The second optional raster layer is slope which shows how steep the slopes within the watershed are and can also help the user visualize how the 
@@ -414,17 +418,20 @@ to the area of interest which, in this case, is Watershed 3. The fourth optional
 color coded by stream type including ephemeral, intermittent, and perennial streams.The first graph displays daily precipitation in millimeters, 
 the second graph displays groundwater level in centimeters, and the third graph displays daily weir discharge in millimeters. <br> <br>
 
-<b> 3. Attributions </b> <br>
+<b> Attributions </b> <br>
          
-<b> We would like to acknowledge our team members who worked effortlessly to create this app: Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen, and our 
+We would like to acknowledge our team members who worked effortlessly to create this app: Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen, and our 
 unofficial but honorary member Dr. JP Gannon. We also want to thank Dr. Robert Settlage with advanced research computing at VT who got our server up and running. 
 Finally, we want to thank Hubbard Brooke Researchers for collecting and giving us the datasets we needed to create our app! <br> <br>
            
-<b> Hubbard Brook Website </b> <br>
-    https://hubbardbrook.org/ <br>
+<b> Hubbard Brook Website: </b> <br>
+    https://hubbardbrook.org/ <br> <br>
     
-<b> Detailed application report  </b> <br>
-    https://docs.google.com/document/d/1BEkRTe37wT_j7svcddjwcvNcjAi_stRxN4dN7IETQwM/edit?usp=sharing"
+<b> Detailed application report:  </b> <br>
+    https://docs.google.com/document/d/1BEkRTe37wT_j7svcddjwcvNcjAi_stRxN4dN7IETQwM/edit?usp=sharing <br> <br>
+
+<b> Source Code: </b> <br>
+    https://github.com/jpgannon/EI_Capstone_S20/tree/master/Map_Group"
            
       )
     ))
