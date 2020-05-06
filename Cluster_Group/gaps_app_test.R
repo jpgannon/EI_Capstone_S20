@@ -1,3 +1,7 @@
+#script for creating synthetic gaps in data to generate synthetic data via interpolation 
+#and linear regression to test these method's ability to create accurate synthetic data
+
+
 #making gaps
 library(tidyverse)
 setwd("D:/Capstone/data")
