@@ -1,3 +1,5 @@
+#script for plotting precipitation in watershed 3
+
 library(tidyverse)
 library(ggplot2)
 library(dtwclust)
