@@ -1,0 +1,306 @@
+---
+title: "Watershed Data Exploration Tool"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll
+    orientation: rows
+    social: menu
+    source_code: embed
+runtime: shiny
+---
+  
+```{r global, include=FALSE}
+# load necessary packages and data sets
+library(shiny)
+library(tidyverse)
+#library(shinysky)
+
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
+                 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
+                 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15', 'JD16', 'JD17',
+                 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25',
+                 'JD26', 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 
+                 'K11', 'K12', 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 
+                 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
+                 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
+
+precip_data <- read_csv("PrecipSnow_BarData.csv")
+well_data <- read_csv("cleanAllWellData.csv")
+slope_asp_data <- read_csv("slope_aspect_well_data.csv")
+hpu_data <- read_csv("hpuDataClean.csv")
+discharge_data <- read_csv("CleanDischargeData_")
+well_info_data <- read_csv("raster_extracted_data.csv")
+#variable that holds the parameters to be passed to the getWellsList function
+
+
+```
+
+Column {.sidebar}
+--------------------------------------------------------------------------------
+  
+Explore data from watershed 3 in Hubbard Brook. To easily zoom in on a date range, click and drag your mouse on the Water Level plot then double click on the resulting rectangle.
+  
+```{r}
+# make a slider widget for slope
+sliderInput("slope", "Select a slope range (degree incline):", min = 3.96, max = 28.4,
+            value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
+
+# make a slider widget for aspect
+sliderInput("aspect", "Select an aspect range (compass degrees):", min = 0.05, max = 344.6,
+            value = c(0.05, 344.6), ticks = TRUE, dragRange = TRUE)
+
+#make a slider input for TWI
+sliderInput("twi", "Select a TWI range:", 
+            min = round(min(well_info_data$TWI), 2), max = round(max(well_info_data$TWI), 2), 
+            value = c(min(well_info_data$TWI),max(well_info_data$TWI)),
+            ticks = TRUE, dragRange = TRUE)
+
+#make a slider input for UAA
+sliderInput("uaa", "Select a UAA range:", 
+            min = round(min(well_info_data$UAA_Weighted), 2), max = round(max(well_info_data$UAA_Weighted), 2), 
+            value = c(min(well_info_data$UAA_Weighted),max(well_info_data$UAA_Weighted)),
+            ticks = TRUE, dragRange = TRUE)
+
+#make a slider input for distance to streams
+sliderInput('distStream', "Select a distance to stream range:", 
+            min = round(min(well_info_data$DistanceToStreams), 2), max = round(max(well_info_data$DistanceToStreams), 2), 
+            value = c(min(well_info_data$DistanceToStreams), max(well_info_data$DistanceToStreams)),
+            ticks = TRUE, dragRange = TRUE)
+
+#make a slider widget for pipe height
+checkboxGroupInput("wellDepth", "Select well depth:",
+                   selected = c("y", "n"), 
+                   choiceNames = c("Deep", "Shallow"),
+                   choiceValues = c("y", "n")
+                   )
+
+# checkbox group input to select which HPU units they want to see
+checkboxGroupInput("hpu", "Select desired HPU(s):", 
+                   choices = unique(hpu_data$HPU), 
+                   selected = unique(hpu_data$HPU))
+
+# Select multiple wells based on well names
+selectInput("select_wells", "Select Well(s):", choices = wellNames, 
+            multiple = TRUE)
+
+#check box that gives user option to select all the wells from the well list
+actionButton("selectAllWellsBox", label =  "Select all filtered wells")
+
+# Select a date range
+dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
+               end = "2018-01-10", format = "mm/dd/yy")
+
+# slider for plot text size
+sliderInput(inputId = "mag", "Plot text size.", min = 10, 
+            max = 24, value = 10)
+
+# plots/refreshes data
+actionButton("plot_btn", label = "Plot")
+
+# loading indicator for the impatients
+#busyIndicator(text = "Calculation in progress ... ", wait = 0)
+```
+
+```{r}
+final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
+                                               end = "2018-01-10")))
+
+observeEvent(input$plot_btn, {
+  final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
+  })
+
+```
+
+Row {data-height=150}
+--------------------------------------------------------------------------------
+ 
+### Precipitation Plot
+
+```{r}
+# renders the plot
+renderPlot({
+  precip_trim <- precip_data %>% filter(between(as.POSIXct(DATE), 
+                                                final_dates$x[1],
+                                                final_dates$x[2]))
+  
+  ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
+    geom_bar(position = "stack", stat = "identity") + theme_classic() +
+    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
+    theme(text = element_text(size=input$mag))
+})
+```
+  
+Row {data-height=350}
+--------------------------------------------------------------------------------
+
+### Water Level Plot
+
+```{r}
+
+#changes wells in wells select input box if slope slider values change
+observeEvent(input$slope, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]), selected = NULL)})
+
+#changes wells in wells select input box if aspect slider values change
+observeEvent(input$aspect, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]), selected = NULL)})
+
+#changes wells in wells select input box if twi slider values change 
+observeEvent(input$twi, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]), selected = NULL)})
+#changes wells in wells select input box if UAA slider values change 
+observeEvent(input$uaa, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]), selected = NULL)})
+
+observeEvent(input$distStream, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]), 
+                    selected = NULL)})
+
+#changes wells in wells select input box if HPU selected box values change
+observeEvent(input$hpu, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]))})
+
+
+#changes wells in wells select input box if pipe height slider values change
+observeEvent(input$wellDepth, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]))})
+
+#provides functionality to check box that allows user to add all wells 
+#currently in the wells list to the graph
+observeEvent(input$selectAllWellsBox, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    selected = {
+                      c(getWellList(input$slope[1], input$slope[2], 
+                                         input$aspect[1], input$aspect[2], 
+                                          input$hpu, input$wellDepth, 
+                                         input$twi[1], input$twi[2], 
+                                         input$uaa[1], input$uaa[2], 
+                                         input$distStream[1], input$distStream[2]))})})
+
+
+
+# Waits for plot btn to choose selected wells
+wells <- eventReactive(input$plot_btn, {input$select_wells})
+
+# observes for brushing
+observeEvent(input$wl_dblclick, {
+  brush <- input$wl_brush
+  if (!is.null(brush))
+    final_dates$x <- c(brush$xmin, brush$xmax)
+  else
+    final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
+})
+
+plotOutput("water_level", dblclick = "wl_dblclick", 
+           brush = brushOpts(id = "wl_brush"))
+
+output$water_level <- renderPlot({
+  
+  # subsets the well data by selected wells and date range
+  selected_well_data <- well_data %>% filter(Well == wells()) %>% 
+    filter(between(date, final_dates$x[1], final_dates$x[2]))
+  
+  ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
+    geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
+    xlab(element_blank()) + theme_classic() + 
+    theme(text = element_text(size=input$mag))
+})
+```
+
+Row {data-height=200}
+--------------------------------------------------------------------------------
+
+### Discharge Plot
+
+```{r}
+renderPlot({
+  discharge_trim <- discharge_data %>% filter(between(as.POSIXct(Date), 
+                                                final_dates$x[1],
+                                                final_dates$x[2]))
+  
+  ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
+    geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
+    xlab(element_blank()) + theme(text = element_text(size=input$mag))
+})
+```
+
+```{r}
+
+#helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
+getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList, depthValsList, minTwi, maxTwi, minUaa, maxUaa, minStream, maxStream) { 
+    #makes list of wells that fit slope and aspect selected by the sliders
+    saWells <- slope_asp_data %>% 
+      filter(between(Slope,minValSlope, maxValSlope), 
+             between(Aspect, minValAsp, maxValAsp)) %>% 
+      select(Well)
+    
+    #makes list of wells that fit HPU selected by user 
+    hpuWells <- hpu_data %>% 
+      subset(HPU %in% hpuValsList) %>% 
+      select(Well)
+    
+    #makes list of wells that fit pipe height selected by user
+    depthWells <- hpu_data %>% 
+      subset(deep_well %in% depthValsList) %>% 
+      select(Well)
+      
+    #filters data from in the well_info_data list
+    wellInfoWells <- well_info_data %>%
+      filter(between(TWI, minTwi, maxTwi), 
+             between(UAA_Weighted, minUaa, maxUaa), 
+             between(DistanceToStreams, minStream, maxStream)) %>% 
+      select(Well)
+    print(wellInfoWells)
+    #makes list of wells that are in both the slope/aspect list and the HPU list
+    tempIntersect1 <- intersect(hpuWells, saWells) 
+    
+    tempIntersect2 <- intersect(tempIntersect1, wellInfoWells)
+    #makes list of wells that are in both the slope/aspect list and the HPU list, and the pipeWells list
+    combWells <- intersect(tempIntersect2, depthWells)
+    
+    #returns filtered wells list
+    return(t(combWells))
+  }
+```

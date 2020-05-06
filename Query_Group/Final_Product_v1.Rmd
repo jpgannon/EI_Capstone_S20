@@ -2,18 +2,20 @@
 title: "Watershed Data Exploration Tool"
 output: 
   flexdashboard::flex_dashboard:
-    vertical_layout: scroll
     orientation: rows
-    social: menu
     source_code: embed
+    theme: spacelab
 runtime: shiny
 ---
   
 ```{r global, include=FALSE}
+################################################################################
+#                          Globals and Datasets                                #
+################################################################################
 # load necessary packages and data sets
 library(shiny)
 library(tidyverse)
-library(shinysky)
+library(grid)
 
 wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
@@ -25,182 +27,485 @@ wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
                  'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
 
 precip_data <- read_csv("PrecipSnow_BarData.csv")
-well_data <- read_csv("cleanAllWellData.csv")
+well_data <- read_csv("sept2011Data.csv")
 slope_asp_data <- read_csv("slope_aspect_well_data.csv")
 hpu_data <- read_csv("hpuDataClean.csv")
 discharge_data <- read_csv("CleanDischargeData_")
-```
-
-Column {.sidebar}
---------------------------------------------------------------------------------
-  
-Explore data from watershed 3 in Hubbard Brook.
-  
-```{r}
-# make a slider widget for slope
-sliderInput("slope", "Select a slope range", min = 3.963356, max = 28.42197,
-            value = c(3.963356, 28.42197), ticks = TRUE, dragRange = TRUE)
-
-# make a slider widget for aspect
-sliderInput("aspect", "Select an aspect range", min = 0.055854, max = 344.6115,
-            value = c(0.055854, 344.6115), ticks = TRUE, dragRange = TRUE)
-
-# checkbox group input to select which HPU units they want to see
-checkboxGroupInput("hpu", "Select desired HPU(s):", 
-                   choices = unique(hpu_data$HPU), 
-                   selected = unique(hpu_data$HPU))
-
-# Select multiple wells based on well names
-selectInput("select_wells", "Select Well(s):", choices = wellNames, 
-            multiple = TRUE)
-
-#check box that gives user option to select all the wells from the well list
-checkboxInput("selectAllWellsBox", "Select all wells in well list", 
-              value = FALSE, width = NULL)
-
-# Select a date range
-dateRangeInput("date_range", "Select Date Range:", start = "2010-07-01", 
-               end = "2018-01-10", format = "mm/dd/yy")
-
-# slider for plot text size
-sliderInput(inputId = "mag", "Plot text size.", min = 10, 
-            max = 24, value = 10)
-
-# plots/refreshes data
-actionButton("plot_btn", label = "Plot")
-
-# loading indicator for the impatients
-busyIndicator(text = "Calculation in progress ... ", wait = 0)
+well_info_data <- read_csv("raster_extracted_data.csv")
 ```
 
 ```{r}
-final_dates <- reactiveValues(x = as.POSIXct(c(start = "2010-07-01", 
-                                               end = "2018-01-10")))
+################################################################################
+#                    Reactive Values and Helper Functions                      #
+################################################################################
 
-observeEvent(input$plot_btn, {
-  final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
-  })
+well_vals <- reactiveValues(
+  slope = c(3, 29), asp = c(0, 360), twi = c(5, 14), 
+  uaa = c(0, 1), dstream = c(0, 83), hpu = unique(hpu_data$HPU), 
+  wdepth = unique(hpu_data$deep_well)
+  )
+
+download <- reactiveValues(data = NULL)
+  
+# helper function for the narrowing down well names by slope and aspect. Takes 
+# the min and max vals and uses slope_asp_data to get the updated well names.
+getWellList <- function() { 
+  #makes list of wells that fit slope and aspect selected by the sliders
+  saWells <- slope_asp_data %>% 
+    filter(between(Slope, well_vals$slope[1], well_vals$slope[2]), 
+           between(Aspect, well_vals$asp[1], well_vals$asp[2])) %>% select(Well)
+  
+  tuWells <- well_info_data %>% 
+    filter(between(TWI, well_vals$twi[1], well_vals$twi[2]), 
+           between(UAA_Weighted, well_vals$uaa[1], well_vals$uaa[2]),
+           between(DistanceToStreams, well_vals$dstream[1], 
+                   well_vals$dstream[2])) %>% select(Well)
+    
+  #makes list of wells that fit HPU selected by user 
+  hpuWells <- hpu_data %>% subset(HPU %in% well_vals$hpu) %>% select(Well)
+  
+  #makes list of wells that fit pipe height selected by user
+  depthWells <- hpu_data %>% subset(deep_well %in% well_vals$wdepth) %>% 
+    select(Well)
+    
+  #makes list of wells that are in both the slope/aspect list and the HPU list
+  combWells <- intersect(hpuWells, saWells)
+  
+  result <- intersect(combWells, tuWells)
+  
+  result1 <- intersect(result, depthWells)
+    
+  #returns filtered wells list
+  return(t(result1))
+}
 ```
 
-Row {data-height=150}
---------------------------------------------------------------------------------
- 
-### Precipitation Plot
-
 ```{r}
-# renders the plot
-renderPlot({
-  precip_trim <- precip_data %>% filter(between(as.POSIXct(DATE), 
-                                                final_dates$x[1],
-                                                final_dates$x[2]))
-  
-  ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
-    geom_bar(position = "stack", stat = "identity") + theme_classic() +
-    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
-    theme(text = element_text(size=input$mag))
-})
-```
-  
-Row {data-height=350}
---------------------------------------------------------------------------------
+################################################################################
+#                             Observe Events                                   #
+################################################################################
 
-### Water Level Plot
-
-```{r}
-#changes wells in wells select input box if slope slider values change
+# changes wells in wells select input box if slope slider values change
 observeEvent(input$slope, {
+  well_vals$slope <- c(input$slope[1], input$slope[2])
+  
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(input$slope[1], input$slope[2], 
-                                          input$aspect[1], input$aspect[2], 
-                                          input$hpu), selected = NULL)})
+                    choices = getWellList(), selected = NULL)
+  })
 
-#changes wells in wells select input box if aspect slider values change
+# changes wells in wells select input box if aspect slider values change
 observeEvent(input$aspect, {
+  well_vals$asp <- c(input$aspect[1], input$aspect[2])
+  
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(input$slope[1], input$slope[2],
-                                          input$aspect[1], input$aspect[2], 
-                                          input$hpu), selected = NULL)})
+                    choices = getWellList(), selected = NULL)
+  })
 
-#changes wells in wells select input box if HPU selected box values change
+# changes wells in wells select input box if uaa slider values change
+observeEvent(input$uaa, {
+  well_vals$uaa <- c(input$uaa[1], input$uaa[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if twa slider values change
+observeEvent(input$twi, {
+  well_vals$twa <- c(input$twi[1], input$twi[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if stream slider values change
+observeEvent(input$distStream, {
+  well_vals$dstream <- c(input$distStream[1], input$distStream[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)})
+
+# changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
+  well_vals$hpu <- input$hpu
+  
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(input$slope[1], input$slope[2],
-                                          input$aspect[1], input$aspect[2], 
-                                          input$hpu))})
+                    choices = getWellList(), selected = NULL)
+  })
 
+# changes wells in wells select input box if well depth values change
+observeEvent(input$wellDepth, {
+  well_vals$wdepth <- input$wellDepth
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
 
 #provides functionality to check box that allows user to add all wells 
 #currently in the wells list to the graph
-observeEvent(input$selectAllWellsBox, {
+observeEvent(input$selectAllWells, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    selected = if(input$selectAllWellsBox == TRUE) {
-                      c(getWellList(input$slope[1], input$slope[2], 
-                                    input$aspect[1], input$aspect[2], 
-                                    input$hpu))})})
-
-# Waits for plot btn to choose selected wells
-wells <- eventReactive(input$plot_btn, {input$select_wells})
+                    selected = {c(getWellList())})
+  })
 
 # observes for brushing
 observeEvent(input$wl_dblclick, {
   brush <- input$wl_brush
   if (!is.null(brush))
-    final_dates$x <- c(brush$xmin, brush$xmax)
-  else
-    final_dates$x <- as.POSIXct(c(input$date_range[1], input$date_range[2]))
-})
+    updateDateRangeInput(session, input = "date_range", label = NULL, 
+                    end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
+                    start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
+  })
 
+# Pop up box if user clicks "Show App User Guide"
+# <br> creates a new line
+#<p>https://www.w3schools.com/tags/default.asp this link help you with html inside 
+observeEvent(input$appGuide, {
+  showModal(modalDialog(
+    title = "App Guide",
+    size ="l",
+    HTML("
+    <h2> Background Information </h2>
+    
+    <p>
+    The Hubbard Brook Experimental Forest has been an important site for 
+    researching groundwater behavior since its establishment in 1955 by the USDA
+    Forest Service, located in the White Mountains of New Hampshire. For the 
+    past 20 years, scientists have been collecting data on groundwater levels 
+    throughout the entire watershed through a collection of wells. Researchers 
+    need a way to easily view and study the plethora of data being collected. 
+    This project aims to clean the data and create a tool for researchers to 
+    view, compare, and study the dataset of well water levels in Watershed 3, a 
+    subset of the Hubbard Brook Experimental Forest.
+    </p>
+    
+    <h2> User Guide </h2>
+    
+    <p>
+    This web application allows users to subset these wells by parameters such 
+    as a specific name, date range, or by well information like slope, aspect, 
+    and hydropedological unit. This is then displayed in the main Well Water 
+    levels graph. Precipitation and weir discharge level graphs are also 
+    displayed.
+    </p>
+    
+    <h4> Well Subsetting </h4>
+    
+    <p>
+    The left sidebar column is where the user can subset and define the 
+    following parameters they would like to visualize:
+    </p>
+    
+    <ul>
+      <li>
+      Slope Range - slope of the ground that an individual well is on; measured 
+      in degrees
+      </li>
+      
+      <li>
+      Aspect Range - compass direction the slope is facing; measured in degrees
+      </li>
+      
+      <li>
+      UAA Range - (upslope accumulated area) area of land draining to a 
+      particular point in the landscape
+      </li>
+      
+      <li>
+      TWI Range - (topographic wetness index) steady state index of how wet the 
+      soil is at that well
+      </li>
+      
+      <li>
+      Distance to Stream Range - distance to closest stream from that well; 
+      measured in meters
+      </li>
+      
+      <li>
+      Select Desired HPU(s) - (hydropedological units) specific soil types
+      </li>
+      
+      <li>
+      Select Well Depth - depth of the well
+      </li>
+    </ul>
+    
+    <p>
+    Select Well(s) & Select All Filtered Wells - All of the above inputs result 
+    in a subsetted selection of wells to plot. The user can then select all the 
+    wells that fit within the search parameters using the Select All Filtered 
+    Wells button or individually select a well using the Select Well(s) input 
+    box.
+    </p>
+    
+    <em>
+    *Note: Each time a parameter is changed the well choices change to fit the 
+    new parameters and the well selection resets. 
+    </em>
+    
+    <p>
+    To select a date range in which to view the filtered wells, use the date 
+    range input.
+    </p>
+    
+    <h4> Plot Modification </h4>
+    
+    <ul>
+      <li>
+      Range of Precip Values to Highlight - used to select a range of 
+      precipitation values to highlight in the precipitation plot. These 
+      highlighted values will appear blue in the plot.
+      </li>
+      
+      <li>
+      Log discharge y axis - show the Y-axis for the Discharge Plot in 
+      logarithmic rather than linear.
+      </li>
+      
+      <li>
+      Plot text size - used to adjust the text size for the plots for ease of 
+      reading.
+      </li>
+      
+      <li>
+      Download - used to download the well data that is currently selected into 
+      a csv file.
+      </li>
+    </ul>
+    
+    <em>
+    *Note: If there are currently no wells selected and the download button is 
+    pressed, then the csv file will be empty. 
+    </em>
+    
+    <h4> Plot Visualization </h4>
+    
+    <p>
+    The time range of each plot will always match the time range of the two 
+    other plots. The current date range will be shown as a label on the Water 
+    Table Plot.
+    </p> 
+    
+    <ul>
+      <li>
+      Precipitation Plot - shows the amount of precipitation (rain and snow) in 
+      millimeters per day and it states the total precipitation in the current 
+      time frame.
+      </li>
+      
+      <li>
+      Water Table Plot - Wells that match the search parameters are shown in 
+      this plot and it shows the different water table depths in centimeters of 
+      each individual selected wells. The user can zoom into the plot by 
+      brushing the section they wish to view and then double clicking.
+      </li>
+      
+      <li>
+      Discharge Plot - shows the data collected from the weir at the lowest 
+      point of the watershed measuring the amount of water exiting in liters per 
+      second.
+      </li>
+    </ul>
+    
+    <em> *Note: For more information, contact the site developers </em>")))
+  })
+```
+
+Column {.sidebar}
+--------------------------------------------------------------------------------
+
+Please refer to the App Guide below for instructions.
+  
+```{r}
+################################################################################
+#                            UI / User Inputs                                  #
+################################################################################
+
+# opens up a read me
+actionButton("appGuide", "App Guide")
+
+# make a slider widget for slope
+sliderInput("slope", 
+            span(style="font-size:13px", "Slope Range (degree incline):"), 
+            min = 3, max = 29, value = c(3, 29), ticks = TRUE, dragRange = TRUE)
+
+# make a slider widget for aspect
+sliderInput("aspect", 
+            span(style="font-size:13px", "Aspect Range (compass degrees):"), 
+            min = 0, max = 360, value = c(0, 360), ticks = TRUE, 
+            dragRange = TRUE)
+
+# make a slider input for UAA
+sliderInput("uaa", span(style="font-size:13px", "UAA Range:"), min = 0, max = 1, 
+            value = c(0, 1), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for TWI
+sliderInput("twi", span(style="font-size:13px", "TWI Range:"), min = 5, 
+            max = 14, value = c(5, 14), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for distance to streams
+sliderInput('distStream', 
+            span(style="font-size:13px", "Distance to Stream (m) Range:"), 
+            min = 0, max = 83, value = c(0, 83), ticks = TRUE, dragRange = TRUE)
+
+# checkbox group input to select which HPU units they want to see
+checkboxGroupInput("hpu", "Select Desired HPU(s):", 
+                   choices = unique(hpu_data$HPU), 
+                   selected = unique(hpu_data$HPU))
+
+# make a slider widget for pipe height
+checkboxGroupInput("wellDepth", "Select Well Depth:", selected = c("y", "n"), 
+                   choiceNames = c("Deep", "Shallow"), 
+                   choiceValues = c("y", "n"))
+
+# Select multiple wells based on well names
+selectInput("select_wells", "Select Well(s):", choices = wellNames, 
+            multiple = TRUE)
+
+# check box that gives user option to select all the wells from the well list
+actionButton("selectAllWells", label =  "Select All Filtered Wells")
+
+# Select a date range
+dateRangeInput("date_range", "Date Range:", start = "2010-07-01", 
+               end = "2018-01-10", format = "mm/dd/yy")
+
+# Identiy range of precip to highlight
+sliderInput("Prange", 
+            span(style="font-size:13px", "Range of Precip Values to Highlight"), 
+            value = c(0, 0), min = 0, max = 150)
+
+# log option for discharge y-axis
+checkboxInput(inputId = "log", 
+              span(style="font-size:13px", "Log discharge y axis"), 
+              value = FALSE)
+
+# slider for plot text size
+sliderInput(inputId = "mag", span(style="font-size:13px", "Plot text size"), 
+            min = 10, max = 24, value = 10)
+```
+
+Click to download the data!
+
+```{r}
+# downloads filtered data
+downloadButton("downloadData", label = "Download Data")
+
+downloadHandler(
+  filename = "Water_Level.csv",
+  content = function(file) {
+    write.csv(as.data.frame(shiny::reactiveValuesToList(download)), 
+              file, row.names = FALSE)
+  }
+)
+```
+
+Site Developers: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
+[Erica Schermerhorn](erica16@vt.edu), 
+[Eric Rosenthal](),
+[Katie Dunlap](), [Ian Bogucki]()
+
+
+Row {data-height=250}
+--------------------------------------------------------------------------------
+ 
+### Precipitation Plot
+
+```{r}
+################################################################################
+#                            Precip Plot Code                                  #
+################################################################################
+renderPlot({
+  
+  # Filters the date and mutates for highlighted section
+  precip_trim <- precip_data %>% 
+    filter(between(DATE, input$date_range[1], input$date_range[2])) %>% 
+    mutate(Highlight = ifelse(
+      Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
+  
+  # Recieves total precip value of precip for selected dates
+  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE), 2)
+  
+  # Format how total precip will appear on the graph
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x = 0.1, 
+                            y = 0.1, hjust = 0, gp = gpar(col="black", 
+                                                          fontsize = input$mag, 
+                                                          fontface="italic")))
+  
+  # plots the graph
+  ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
+    geom_bar(position = "stack", stat = "identity") + theme_classic() +
+    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity") +
+    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
+    theme(text = element_text(size=input$mag)) + annotation_custom(grob) +
+    theme(legend.position = "bottom") +
+    scale_fill_discrete(name = "Type", labels = c("Rain", "Snowmelt"))
+})
+```
+  
+Row {data-height=400}
+--------------------------------------------------------------------------------
+
+### Well Water Level Plot
+
+```{r}
+################################################################################
+#                          Water Table Plot Code                               #
+################################################################################
 plotOutput("water_level", dblclick = "wl_dblclick", 
            brush = brushOpts(id = "wl_brush"))
 
 output$water_level <- renderPlot({
   
+  # Error message if well names are empty
+  validate(
+      need(input$select_wells != "", label = "Well Names")
+    )
+  
   # subsets the well data by selected wells and date range
-  selected_well_data <- well_data %>% filter(Well == wells()) %>% 
-    filter(between(date, final_dates$x[1], final_dates$x[2]))
+  selected_well_data <- well_data %>% filter(Well == input$select_wells) %>% 
+    filter(between(date, as.POSIXct(input$date_range[1]), 
+                   as.POSIXct(input$date_range[2])))
+  
+  download$data <- selected_well_data
+  
+  # Format how total precip will appear on the graph
+  grobDate <- grobTree(textGrob(
+    paste(input$date_range[1], "to", input$date_range[2]), 
+    x = 0.1, y = 0.1, hjust = 0, gp = gpar(col="black", fontsize = input$mag, 
+                                           fontface="italic")))
   
   ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
-    geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
-    xlab(element_blank()) + theme_classic() + 
-    theme(text = element_text(size=input$mag))
+    geom_line() + scale_y_reverse() + ylab("Water Level (cm)") +
+    xlab(element_blank()) + theme_classic() + annotation_custom(grobDate) +
+    theme(text = element_text(size=input$mag)) + 
+    theme(legend.position = "bottom")
 })
 ```
 
-Row {data-height=200}
+Row {data-height=250}
 --------------------------------------------------------------------------------
 
 ### Discharge Plot
 
 ```{r}
+################################################################################
+#                         Discharge Plot Code                                  #
+################################################################################
+
 renderPlot({
-  discharge_trim <- discharge_data %>% filter(between(as.POSIXct(Date), 
-                                                final_dates$x[1],
-                                                final_dates$x[2]))
   
-  ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
+  # Filters the dates
+  discharge_trim <- discharge_data %>% 
+    filter(between(as.POSIXct(Date), as.POSIXct(input$date_range[1]),
+                   as.POSIXct(input$date_range[2])))
+  
+  d_plot <- ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
     geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
     xlab(element_blank()) + theme(text = element_text(size=input$mag))
+  
+  # Changes the y-axis to a log
+  if(input$log) 
+    d_plot <- d_plot + scale_y_log10() 
+  
+  d_plot
 })
-```
-
-```{r}
-#helper function for the narrowing down well names by slope and aspect. Takes the min and max vals and uses slope_asp_data to get the updated well names.
-getWellList <- function(minValSlope, maxValSlope, minValAsp, maxValAsp, hpuValsList) { 
-    #makes list of wells that fit slope and aspect selected by the sliders
-    saWells <- slope_asp_data %>% 
-      filter(between(Slope,minValSlope, maxValSlope), 
-             between(Aspect, minValAsp, maxValAsp)) %>% 
-      select(Well)
-    
-    #makes list of wells that fit HPU selected by user 
-    hpuWells <- hpu_data %>% 
-      subset(HPU %in% hpuValsList) %>% 
-      select(Well)
-    
-    #makes list of wells that are in both the slope/aspect list and the HPU list
-    combWells <- intersect(hpuWells, saWells)
-    
-    #returns filtered wells list
-    return(t(combWells))
-  }
 ```

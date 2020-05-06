@@ -1,0 +1,361 @@
+---
+title: "Watershed Data Exploration Tool"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    source_code: embed
+    theme: spacelab
+runtime: shiny
+---
+  
+```{r global, include=FALSE}
+################################################################################
+#                          Globals and Datasets                                #
+################################################################################
+# load necessary packages and data sets
+library(shiny)
+library(tidyverse)
+library(grid)
+
+wellNames = list('A5', 'A6', 'A7', 'D1', 'H4', 'I3', 'I6', 'I7', 'I8', 'I9',
+                 'JD01', 'JD02', 'JD03', 'JD04', 'JD05', 'JD06', 'JD07', 'JD08', 
+                 'JD10', 'JD11', 'JD12', 'JD13', 'JD14', 'JD15', 'JD16', 'JD17',
+                 'JD18', 'JD19', 'JD20', 'JD21', 'JD22', 'JD23', 'JD24', 'JD25',
+                 'JD26', 'JD27', 'JD28', 'JD29', 'JD30', 'JD31', 'K1', 'K10', 
+                 'K11', 'K12', 'K1D', 'K4D', 'K4M', 'K4S', 'K5', 'K6D', 'K6S', 
+                 'K7D', 'K7S', 'K8', 'K9', 'N1', 'N2', 'N3', 'N4', 'N5', 'O1', 
+                 'O2', 'P1', 'P2', 'Q1', 'Q2', 'T1')
+
+precip_data <- read_csv("PrecipSnow_BarData.csv")
+well_data <- read_csv("sept2011Data.csv")
+slope_asp_data <- read_csv("slope_aspect_well_data.csv")
+hpu_data <- read_csv("hpuDataClean.csv")
+discharge_data <- read_csv("CleanDischargeData_")
+well_info_data <- read_csv("raster_extracted_data.csv")
+```
+
+```{r}
+################################################################################
+#                    Reactive Values and Helper Functions                      #
+################################################################################
+
+well_vals <- reactiveValues(
+  slope = c(3, 29), asp = c(0, 360), twi = c(5, 14), 
+  uaa = c(0, 1), dstream = c(0, 83), hpu = unique(hpu_data$HPU), 
+  wdepth = unique(hpu_data$deep_well)
+  )
+
+download <- reactiveValues(data = NULL)
+  
+# helper function for the narrowing down well names by slope and aspect. Takes 
+# the min and max vals and uses slope_asp_data to get the updated well names.
+getWellList <- function() { 
+  #makes list of wells that fit slope and aspect selected by the sliders
+  saWells <- slope_asp_data %>% 
+    filter(between(Slope, well_vals$slope[1], well_vals$slope[2]), 
+           between(Aspect, well_vals$asp[1], well_vals$asp[2])) %>% select(Well)
+  
+  tuWells <- well_info_data %>% 
+    filter(between(TWI, well_vals$twi[1], well_vals$twi[2]), 
+           between(UAA_Weighted, well_vals$uaa[1], well_vals$uaa[2]),
+           between(DistanceToStreams, well_vals$dstream[1], 
+                   well_vals$dstream[2])) %>% select(Well)
+    
+  #makes list of wells that fit HPU selected by user 
+  hpuWells <- hpu_data %>% subset(HPU %in% well_vals$hpu) %>% select(Well)
+  
+  #makes list of wells that fit pipe height selected by user
+  depthWells <- hpu_data %>% subset(deep_well %in% well_vals$wdepth) %>% 
+    select(Well)
+    
+  #makes list of wells that are in both the slope/aspect list and the HPU list
+  combWells <- intersect(hpuWells, saWells)
+  
+  result <- intersect(combWells, tuWells)
+  
+  result1 <- intersect(result, depthWells)
+    
+  #returns filtered wells list
+  return(t(result1))
+}
+```
+
+```{r}
+################################################################################
+#                             Observe Events                                   #
+################################################################################
+
+# changes wells in wells select input box if slope slider values change
+observeEvent(input$slope, {
+  well_vals$slope <- c(input$slope[1], input$slope[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if aspect slider values change
+observeEvent(input$aspect, {
+  well_vals$asp <- c(input$aspect[1], input$aspect[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if uaa slider values change
+observeEvent(input$uaa, {
+  well_vals$uaa <- c(input$uaa[1], input$uaa[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if twa slider values change
+observeEvent(input$twi, {
+  well_vals$twa <- c(input$twi[1], input$twi[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if stream slider values change
+observeEvent(input$distStream, {
+  well_vals$dstream <- c(input$distStream[1], input$distStream[2])
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)})
+
+# changes wells in wells select input box if HPU selected box values change
+observeEvent(input$hpu, {
+  well_vals$hpu <- input$hpu
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+# changes wells in wells select input box if well depth values change
+observeEvent(input$wellDepth, {
+  well_vals$wdepth <- input$wellDepth
+  
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    choices = getWellList(), selected = NULL)
+  })
+
+#provides functionality to check box that allows user to add all wells 
+#currently in the wells list to the graph
+observeEvent(input$selectAllWells, {
+  updateSelectInput(session, input = "select_wells", label = NULL, 
+                    selected = {c(getWellList())})
+  })
+
+# observes for brushing
+observeEvent(input$wl_dblclick, {
+  brush <- input$wl_brush
+  if (!is.null(brush))
+    updateDateRangeInput(session, input = "date_range", label = NULL, 
+                    end = as.POSIXct(brush$xmax, origin = '1970-01-01'),
+                    start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
+  })
+
+# Pop up box if user clicks "Show App User Guide"
+# <br> creates a new line
+#https://www.w3schools.com/tags/default.asp this link help you with html inside 
+observeEvent(input$appGuide, {
+  showModal(modalDialog(
+    title = "App Instructions:",
+    HTML("type your stuff in here
+    <br>    
+           
+    test new line"
+    )
+    ))
+  })
+```
+
+Column {.sidebar}
+--------------------------------------------------------------------------------
+
+Please refer to the App Guide below for instructions.
+  
+```{r}
+################################################################################
+#                            UI / User Inputs                                  #
+################################################################################
+
+# opens up a read me
+actionButton("appGuide", "App Guide")
+
+# make a slider widget for slope
+sliderInput("slope", "Slope Range:", min = 3, max = 29,
+            value = c(3, 29), ticks = TRUE, dragRange = TRUE)
+
+# make a slider widget for aspect
+sliderInput("aspect", "Aspect Range:", min = 0, max = 360,
+            value = c(0, 360), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for UAA
+sliderInput("uaa", "UAA Range:", min = 0, max = 1, 
+            value = c(0, 1), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for TWI
+sliderInput("twi", "TWI Range:", min = 5, max = 14, 
+            value = c(5, 14), ticks = TRUE, dragRange = TRUE)
+
+# make a slider input for distance to streams
+sliderInput('distStream', "Distance to Stream Range:", min = 0, max = 83, 
+            value = c(0, 83), ticks = TRUE, dragRange = TRUE)
+
+# checkbox group input to select which HPU units they want to see
+checkboxGroupInput("hpu", "Select Desired HPU(s):", 
+                   choices = unique(hpu_data$HPU), 
+                   selected = unique(hpu_data$HPU))
+
+# make a slider widget for pipe height
+checkboxGroupInput("wellDepth", "Select Well Depth:", selected = c("y", "n"), 
+                   choiceNames = c("Deep", "Shallow"), 
+                   choiceValues = c("y", "n"))
+
+# Select multiple wells based on well names
+selectInput("select_wells", "Select Well(s):", choices = wellNames, 
+            multiple = TRUE)
+
+# check box that gives user option to select all the wells from the well list
+actionButton("selectAllWells", label =  "Select All Filtered Wells")
+
+# Select a date range
+dateRangeInput("date_range", "Date Range:", start = "2010-07-01", 
+               end = "2018-01-10", format = "mm/dd/yy")
+
+# Identiy range of precip to highlight
+sliderInput("Prange", "Range of Precip Values to Highlight", value = c(0, 150), 
+            min = 0, max = 100)
+
+# log option for discharge y-axis
+checkboxInput(inputId = "log", label = "Log discharge y axis.", value = FALSE)
+
+# slider for plot text size
+sliderInput(inputId = "mag", "Plot text size.", min = 10, max = 24, value = 10)
+
+# downloads filtered data
+downloadButton("downloadData", "Download")
+
+downloadHandler(
+  filename = "Water_Level.csv",
+  content = function(file) {
+    write.csv(as.data.frame(shiny::reactiveValuesToList(download)), 
+              file, row.names = FALSE)
+  }
+)
+```
+
+Application authors: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
+[Erica Schermerhorn](), 
+[Eric Rosenthal](),
+[Katie Dunlap](), [Ian Bogucki](),
+[Virginia Tech University](https://cnre.vt.edu/)
+
+
+Row {data-height=250}
+--------------------------------------------------------------------------------
+ 
+### Precipitation Plot
+
+```{r}
+################################################################################
+#                            Precip Plot Code                                  #
+################################################################################
+renderPlot({
+  
+  # Filters the date and mutates for highlighted section
+  precip_trim <- precip_data %>% 
+    filter(between(DATE, input$date_range[1], input$date_range[2])) %>% 
+    mutate(Highlight = ifelse(
+      Value >= input$Prange[1] & Value <= input$Prange[2], Value, NA))
+  
+  # Recieves total precip value of precip for selected dates
+  Ptotal <- round(sum(precip_trim$Value, na.rm = TRUE), 2)
+  
+  # Format how total precip will appear on the graph
+  grob <- grobTree(textGrob(paste("Total Precip:", Ptotal, "mm"), x = 0.1, 
+                            y = 0.1, hjust = 0, gp = gpar(col="black", 
+                                                          fontsize = input$mag, 
+                                                          fontface="italic")))
+  
+  # plots the graph
+  ggplot(data = precip_trim, aes(fill = Type, y = Value, x = DATE)) +
+    geom_bar(position = "stack", stat = "identity") + theme_classic() +
+    geom_bar(aes(DATE, Highlight), fill = "blue", stat = "identity") +
+    xlab(element_blank()) + ylab("Precip (mm)") + scale_y_reverse() +
+    theme(text = element_text(size=input$mag)) + annotation_custom(grob) +
+    theme(legend.position = "bottom") +
+    scale_fill_discrete(name = "Type", labels = c("Rain", "Snow"))
+})
+```
+  
+Row {data-height=400}
+--------------------------------------------------------------------------------
+
+### Water Table Plot
+
+```{r}
+################################################################################
+#                          Water Table Plot Code                               #
+################################################################################
+plotOutput("water_level", dblclick = "wl_dblclick", 
+           brush = brushOpts(id = "wl_brush"))
+
+output$water_level <- renderPlot({
+  
+  # Error message if well names are empty
+  validate(
+      need(input$select_wells != "", label = "Well Names")
+    )
+  
+  # subsets the well data by selected wells and date range
+  selected_well_data <- well_data %>% filter(Well == input$select_wells) %>% 
+    filter(between(date, as.POSIXct(input$date_range[1]), 
+                   as.POSIXct(input$date_range[2])))
+  
+  download$data <- selected_well_data
+  
+  # Format how total precip will appear on the graph
+  grobDate <- grobTree(textGrob(
+    paste(input$date_range[1], "to", input$date_range[2]), 
+    x = 0.1, y = 0.1, hjust = 0, gp = gpar(col="black", fontsize = input$mag, 
+                                           fontface="italic")))
+  
+  ggplot(selected_well_data, aes(x = date, y = level, color = Well)) + 
+    geom_line() + scale_y_reverse() + ylab("Water Table Depth (cm)") +
+    xlab(element_blank()) + theme_classic() + annotation_custom(grobDate) +
+    theme(text = element_text(size=input$mag)) + 
+    theme(legend.position = "bottom")
+})
+```
+
+Row {data-height=250}
+--------------------------------------------------------------------------------
+
+### Discharge Plot
+
+```{r}
+################################################################################
+#                         Discharge Plot Code                                  #
+################################################################################
+
+renderPlot({
+  
+  # Filters the dates
+  discharge_trim <- discharge_data %>% 
+    filter(between(as.POSIXct(Date), as.POSIXct(input$date_range[1]),
+                   as.POSIXct(input$date_range[2])))
+  
+  d_plot <- ggplot(discharge_trim, mapping = aes(x = Date, y = Discharge_ls)) +
+    geom_line() + theme_classic() + ylab("Discharge (ltr/sec)") + 
+    xlab(element_blank()) + theme(text = element_text(size=input$mag))
+  
+  # Changes the y-axis to a log
+  if(input$log) 
+    d_plot <- d_plot + scale_y_log10() 
+  
+  d_plot
+})
+```
