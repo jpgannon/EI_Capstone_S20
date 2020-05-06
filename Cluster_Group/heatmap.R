@@ -32,6 +32,7 @@ Bimodal <- c()
 Aquept <- c()
 Bhs <- c()
 
+#occupy vectors with the wells that belong to that HPU
 for (x in 1:nrow(data)){
   if (data$HPU[x] == "E"){
     E <- c(E, data$Well[x])
@@ -61,6 +62,7 @@ cluster4 <- c()
 cluster5 <- c()
 cluster6 <- c()
 
+#occupy clusters with the wells that belong to that cluster
 for (x in 1:nrow(data)){
   if (data$Cluster[x] == 1){
     cluster1 <- c(cluster1, data$Well[x])
@@ -136,9 +138,10 @@ intersect_matrix["Bhs", "4"] <- length(intersect(Bhs, cluster4))
 intersect_matrix["Bhs", "5"] <- length(intersect(Bhs, cluster5))
 intersect_matrix["Bhs", "6"] <- length(intersect(Bhs, cluster6))
 
-
+#melt matrix into long format for ggplot
 melted_intersection_matrix <- melt(intersect_matrix)
 
+#generate plot
 ggplot(data = melted_intersection_matrix, aes(x=Var1, y=Var2, fill=value)) + 
   geom_tile() + 
   labs(x = "HPU Class",
