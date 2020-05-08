@@ -103,7 +103,7 @@ ui <- fluidPage(
 #define server logic
 server <- function(input, output, session) {
   
-  #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/Map_Code/EI_Capstone_S20/Map_Group/test_app")
+  #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/TEST2/data")
   
   #Load hydrological data
   welldata <- read_csv("welldatahourly.csv") 
@@ -151,8 +151,7 @@ server <- function(input, output, session) {
     #converts date column to match well data
     precip <- precip %>%
       mutate(DATE = as.POSIXct(DATE))
-    
-    
+ 
    
     (ggplot(data = precip, mapping = aes(x = DATE, y = Precip))+
         geom_bar(stat = "identity", fill = "#0072B2")+
@@ -199,13 +198,13 @@ server <- function(input, output, session) {
   ws3 <- st_transform(ws3, "+proj=longlat +datum=WGS84 +no_defs")
   
   # Load stream network shapefile 
-  ws3streams <- st_read("Shapefiles/ws3streams_proj.shp")
+  ws3streams <- st_read("ws3streams_proj.shp")
   ws3streams <- st_transform(ws3streams, "+proj=longlat +datum=WGS84 +no_defs")
   
   # Load UAA raster
-  uaa <- raster("ws3uaab.tif")
-  
-  # Load slope raster
+  uaa <- raster("ws3_uaa.tif")
+
+ # Load slope raster
   ws3slope <- raster("ws3_slope.tif")
   
   #Load soil hpu raster
@@ -231,13 +230,13 @@ server <- function(input, output, session) {
   
 
   # set UAA colors for map
-  uaa_pal <- colorBin("YlOrRd", domain = NULL, bins = 5, na.color = "transparent")
+  uaa_pal <- colorBin(c("Blue", "Green", "Red"), domain = NULL, bins = c(0, 480, 2196, 6727, 11600, 17704)
+                      , na.color = "transparent")
   
   # set UAA color scale for legend
-  uaa_pal2 <- colorNumeric(palette = "YlOrRd", domain = uaa_vals, na.color = NA)
+  uaa_pal2 <- colorNumeric(palette = c("Blue", "Green", "Red"), domain = uaa_vals, na.color = NA)
   
   
- 
   # set slope colors for map
   pal_slope <- colorBin("YlOrBr", domain = NULL, bins = 5, na.color = "transparent")
   
@@ -431,5 +430,4 @@ Finally, we want to thank Hubbard Brooke Researchers for collecting and giving u
 
 # Runs the app
 app <- shinyApp(ui, server)
-
 
