@@ -138,7 +138,7 @@ server <- function(input, output, session) {
       theme_classic()+
       theme(legend.position = "bottom") +
       theme(text = element_text(size=input$mag)) +
-      theme(axis.title.x=element_blank()) +
+      theme(axis.title.x = element_blank()) +
       theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
     
   })
