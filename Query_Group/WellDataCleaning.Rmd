@@ -9,6 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+The following code sets the well names and allows the user to follow along if they download the data from this link: https://drive.google.com/drive/folders/1A0jK4_ZWalTo7I7dhEel04dbfA6eA3Ub?usp=sharing
+to their computer, as long as they change the userFilePath on line 23. That line should be the only one that needs to be modified for this code to work. 
+If there is an issue, contact erica16@vt.edu.
+
 ```{r}
 library(tidyverse)
 library(lubridate)
@@ -22,7 +26,6 @@ wellDatasList <- list()
 userFilePath <- "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/"
 setwd(paste0(userFilePath, "WS3_waterlevel_data"))
 
-#dirNames <- list.dirs(path = "C:/Users/scint/OneDrive/Documents/VT/Spring 2020/capstone/WS3_waterlevel_data/.", full.names = FALSE, recursive = TRUE)
 
 for (well in wellNames){
   wellDatasList[[well]] <- read_csv(paste(well,"csv", sep = "."))

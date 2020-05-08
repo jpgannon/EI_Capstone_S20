@@ -1,4 +1,6 @@
-#Comparison of clustering methods and numbers of clusters
+#Author: Robbie Coulter
+
+#Comparison of clustering methods and parameters
 #using internal comparisons and existing HPU clusters
 
 library(tidyverse)
@@ -11,14 +13,21 @@ HPU <- read_csv("well_hpu.csv")
 
 colnames(data) = c("Well", "Time", "Level", "WtDepth")
 
-start_date <- "2012-01-01"
-end_date <- "2012-06-01"
+#start and end date for analysis
+start_date <- "2012-08-09"
+end_date <- "2012-08-11"
 
+#selected wells for analysis
 target <- c("T1", "Q2", "Q1", "P2", "O2", "O1", "N5", "N4", "N3", "N2",
             "N1", "K9", "K8", "K7S", "K7D", "K6S", "K6D", "K5", "K4S", "K4M",
             "K4D", "K1D", "K11", "K10", "K1", "JD25", "JD24", "JD23",
             "JD22", "JD21", "JD03", "JD02", "I9", "I8", "I7", "I6", "I3", "H4",
             "D1", "A6")
+
+
+####generate alternate list of wells not in 
+
+
 
 Wells <- data %>% 
   filter(Well %in% target,
@@ -29,9 +38,12 @@ Wells <- data %>%
 #create list of list for tsclust function
 wellsList <- lapply(split(Wells$WtDepth, Wells$Well), as.list)
 
-#create normalized well list
+#####create normalized well list#####
 
+#create function to normalize list of doubles 
 normalize <- function(list){
+  #the minimum value set to 0 if the real minimum is greater than zero
+  #to represent ground level in the well
   minValue <- ifelse(min(unlist(list)) > 0, 0, min(unlist(list)))
   maxValue <- max(unlist(list))
   for (x in 1:length(list)){
@@ -40,6 +52,7 @@ normalize <- function(list){
   return(list)
 }
 
+#apply function to list of lists 
 normalizedWellsList <- lapply(wellsList, normalize)
 
 #establish emtpy data frame to store internal CVI results
@@ -140,7 +153,7 @@ external_results <- data.frame(Algorithm = character(),
 
 #Comparing K-shape with 6 clusters to soil HPUs
 
-k_shape_result <- tsclust(series = normalizedWellsList,
+k_shape_result <- tsclust(series = wellsList,
                           type = "partitional",
                           k = 6,
                           distance = "sbd")
@@ -183,6 +196,11 @@ external_results <- rbind(external_results, data.frame(Algorithm, NClusters, RI,
 
 dtw_result_df <- data.frame(Well = rev(target),
                  Cluster = dtw_result@cluster)
+
+k_shape_result_df <- data.frame(Well = rev(target),
+                                Cluster = k_shape_result@cluster)
+
+write_csv(k_shape_result_df, path = "k_shape_result.csv")
 
 #write_csv(dtw_result_df, path = "dtw_result.csv")
 
@@ -283,5 +301,23 @@ colnames(k_shape_contingency_table) <- c("Same Cluster", "Different Cluster")
 k_shape_rand_index <- (TP_k_shape + TN_k_shape)/(TP_k_shape + TN_k_shape + FP_k_shape + FN_k_shape)
 
 
+#plots
 
-#plot(dtw_result, main =  "DTW (k=4) Results for Time Series 2")
+rawDF <- data.frame("Depth" = unlist(wellsList$A6)) %>% 
+  rowid_to_column("Time")
+
+raw <- ggplot(data = rawDF, mapping = aes(x = Time, y = Depth)) +
+  geom_line() +
+  labs(title = "Raw Data Time Series Example Based on Well A6 for 6/1/2012 to 6/3/2012")
+
+plot(raw)
+
+normDF <- data.frame("Depth" = unlist(normalizedWellsList$A6)) %>% 
+  rowid_to_column("Time")
+
+norm <- ggplot(data = normDF, mapping = aes(x = Time, y = Depth)) +
+  geom_line() +
+  labs(title = "Normalized Data Time Series Example Based on Well A6 for 6/1/2012 to 6/3/2012")
+
+plot(norm)
+

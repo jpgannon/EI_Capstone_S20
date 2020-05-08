@@ -38,7 +38,7 @@ well_info_data <- read_csv("raster_extracted_data.csv")
 ################################################################################
 #                    Reactive Values and Helper Functions                      #
 ################################################################################
-
+#an ever-changing list holding the current slider values - this prevents the code from having this list repeating every time the getWellList function is called
 well_vals <- reactiveValues(
   slope = c(3, 29), asp = c(0, 360), twi = c(5, 14), 
   uaa = c(0, 1), dstream = c(0, 83), hpu = unique(hpu_data$HPU), 
@@ -47,8 +47,7 @@ well_vals <- reactiveValues(
 
 download <- reactiveValues(data = NULL)
   
-# helper function for the narrowing down well names by slope and aspect. Takes 
-# the min and max vals and uses slope_asp_data to get the updated well names.
+# helper function for the narrowing down well names by all the slider and check box inputs. Uses the well_vals variable above to get the current slider values.
 getWellList <- function() { 
   #makes list of wells that fit slope and aspect selected by the sliders
   saWells <- slope_asp_data %>% 
@@ -68,7 +67,7 @@ getWellList <- function() {
   depthWells <- hpu_data %>% subset(deep_well %in% well_vals$wdepth) %>% 
     select(Well)
     
-  #makes list of wells that are in both the slope/aspect list and the HPU list
+  #combines all the above variables into one final list of well names
   combWells <- intersect(hpuWells, saWells)
   
   result <- intersect(combWells, tuWells)
@@ -111,7 +110,7 @@ observeEvent(input$uaa, {
 
 # changes wells in wells select input box if twa slider values change
 observeEvent(input$twi, {
-  well_vals$twa <- c(input$twi[1], input$twi[2])
+  well_vals$twi <- c(input$twi[1], input$twi[2])
   
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     choices = getWellList(), selected = NULL)
@@ -122,7 +121,8 @@ observeEvent(input$distStream, {
   well_vals$dstream <- c(input$distStream[1], input$distStream[2])
   
   updateSelectInput(session, input = "select_wells", label = NULL, 
-                    choices = getWellList(), selected = NULL)})
+                    choices = getWellList(), selected = NULL)
+  })
 
 # changes wells in wells select input box if HPU selected box values change
 observeEvent(input$hpu, {
@@ -140,14 +140,13 @@ observeEvent(input$wellDepth, {
                     choices = getWellList(), selected = NULL)
   })
 
-#provides functionality to check box that allows user to add all wells 
-#currently in the wells list to the graph
+#provides functionality to check box that allows user to add all wells currently in the wells list to the graph
 observeEvent(input$selectAllWells, {
   updateSelectInput(session, input = "select_wells", label = NULL, 
                     selected = {c(getWellList())})
   })
 
-# observes for brushing
+# observes for brushing dates
 observeEvent(input$wl_dblclick, {
   brush <- input$wl_brush
   if (!is.null(brush))
@@ -156,9 +155,7 @@ observeEvent(input$wl_dblclick, {
                     start = as.POSIXct(brush$xmin, origin = '1970-01-01'))
   })
 
-# Pop up box if user clicks "Show App User Guide"
-# <br> creates a new line
-#<p>https://www.w3schools.com/tags/default.asp this link help you with html inside 
+# Pop up box if user clicks "App Guide" button
 observeEvent(input$appGuide, {
   showModal(modalDialog(
     title = "App Guide",
@@ -386,7 +383,7 @@ sliderInput(inputId = "mag", span(style="font-size:13px", "Plot text size"),
 Click to download the data!
 
 ```{r}
-# downloads filtered data
+# downloads filtered well data based on input from sliders
 downloadButton("downloadData", label = "Download Data")
 
 downloadHandler(

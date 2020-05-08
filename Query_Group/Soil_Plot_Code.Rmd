@@ -1,0 +1,79 @@
+---
+title: "Subsetting Soil Profiles with AQP"
+author: "Ian Bogucki"
+date: "5/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#this chunk cleans up the data and adds an index column which 
+#was used to subset the data based on the pedon AKA well name
+
+#read in file of soil csv
+soils <- read.csv("/Users/ianbogucki/Desktop/EI Capstone/data/Soil_database.csv", stringsAsFactors = FALSE)
+
+soils <- soils %>% 
+  mutate(pedon = gsub("WS3_", "",pedon))
+
+#creates data table with indices of each well name to reference in subsetting
+indices <- soils %>% 
+  select(pedon) %>% 
+  group_by(pedon) %>% 
+  mutate(index = group_indices())
+
+```
+
+```{r}
+#the library used here to visualise the soil data
+#guides on how to use this library are found on 
+#http://ncss-tech.github.io/AQP/
+library(aqp)
+
+#first() will find which index the specified well is
+#in this case it is A1 which has the index of 1
+idx <- (first(which(indices$pedon == "A1")))
+
+
+#this identifies which columns are the id, name, frags
+#when visualizing the data in plots. In this case
+#pedon, or the well name, is what identifies each individual 
+#soil profile. The horizons are the names of each section under
+#each soil profile. 
+soils$id <- soils$pedon
+soils$name <- soils$horizon
+soils$frags <- as.numeric(soils$frags)
+
+# Convert Munsell colors to hex
+soils$soil_color <- with(soils, munsell2rgb(hue, value, chroma))
+
+# Creates Soil Profile Collection
+# This is where issues arised when it came to
+# dynamically subsetting one graph behind
+# the water level graph
+depths(soils) <- id ~ top + bottom
+
+#Plot single profile, with munsell colors
+#since idx is 1, this will plot the soil profile
+#of the well that has the index of one.
+par(mar=c(0,0,0,0), xpd=NA)
+plotSPC(soils[idx, ], cex.names=.75)
+
+#to save as an image other libraries are needed such as
+library(png)
+png(filename = "soil_output.png")
+par(mar=c(0,0,0,0))
+plotSPC(soils[idx, ], cex.names=.75)
+dev.off()
+
+# Another issue with this is that with the server that
+# uses the app. I was unsure of where the image
+# file would be stored as it would be needed to 
+# be referenced to place it behind the soil plot
+
+
+
+```
