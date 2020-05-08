@@ -396,9 +396,9 @@ downloadHandler(
 ```
 
 Site Developers: [Sean Calida](https://www.linkedin.com/in/sean-calida/),
-[Erica Schermerhorn](erica16@vt.edu), 
-[Eric Rosenthal](),
-[Katie Dunlap](), [Ian Bogucki]()
+[Erica Schermerhorn](mailto:erica16@vt.edu), 
+[Eric Rosenthal](https://www.linkedin.com/in/eric-rosenthal-a93b98170/),
+[Katie Dunlap](mailto:kikidun4@vt.edu), [Ian Bogucki](mailto:ian97@vt.edu)
 
 
 Row {data-height=250}
