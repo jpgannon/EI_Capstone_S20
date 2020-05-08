@@ -19,15 +19,15 @@ library(shinythemes)
 library(raster)
 library(leaflet.extras)
 
-
+# User Interface ===============================================================
 
 # Define UI for application
 ui <- fluidPage(
   
-  #Set theme
+  # Set theme
   theme = shinytheme("flatly"),
   
-  #Application title
+  # Application title
   titlePanel("Watershed 3 Well Visualization"),
   
   sidebarLayout(
@@ -35,17 +35,17 @@ ui <- fluidPage(
     sidebarPanel(
       width = 4,
       
-      #App guide and app info buttons
+      # App guide and app info buttons
       actionButton("appGuide", "User Guide"),
       actionButton("background", "App Info and Credits"),
       
       h6(""),
       
     
-      #plots the map
+      # Plots the map
       leafletOutput("map"),
       
-      #Creates text for general information
+      # Creates text for general information
       h6("Precipitation, streamflow, and water table level for watershed 3 of the Hubbard Brook Experimental Forest"),
       h6(strong("Location:"), "White Mountain National Forest, NH, USA"),
       h6(strong("Forest type:"), "Northern hardwood"),
@@ -56,14 +56,14 @@ ui <- fluidPage(
                       Double click again to undo.")),
 
       
-      #Creates calender to select date range
+      # Creates calender to select date range
       dateRangeInput("date", "Select date range:", start = "2007-08-10", end = "2018-10-08",
                      separator = "to", startview = "year"),
-      #Text input for wells
+      # Text input for wells
       textInput("well_input", "Enter well names with spaces in between or select from map above",
                 value = "JD29"),
     
-     #change the size of the text in the plot using a slider
+     # Change the size of the text in the plot using a slider
      sliderInput(inputId = "mag", label = "Plot text size.", min = 11, max = 24, value = 12),
     
       
@@ -77,7 +77,7 @@ ui <- fluidPage(
   mainPanel(
     
     
-    #Plots the graphs
+    # Plots the graphs
     
     plotOutput("precplot", width = "90%", height = "150px",
                dblclick = "plot1_dblclick",
@@ -99,34 +99,35 @@ ui <- fluidPage(
     
   )))
 
+# Server =======================================================================
 
-#define server logic
+# Define server logic
 server <- function(input, output, session) {
   
   #setwd("C:/Users/maone/OneDrive/Documents/SPRING2020/FREC4444/TEST2/data")
   
-  #Load hydrological data
+  # Load hydrological data
   welldata <- read_csv("welldatahourly.csv") 
   precip <- read_csv("dailyprecip_WS3.csv")
   weir <- read_csv("stream_discharge_WS3.csv")
   
-  #renames level column for clarity when downloading csv of data
+  # Renames level column for clarity when downloading csv of data
   welldata <- welldata %>%
     rename(level_w_pipe_height = level)
   
-  #creates date range
+  # Creates date range
   ranges <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
   maxrange <- reactiveValues(x = c("2007-08-10", "2018-10-08"))
   
-
+# Water Table Plot==============================================================
   
-  #Creates water table plot
+  # Creates water table plot
   output$wellplot <- renderPlot({
     
-    #Creates ID from text input
+    # Creates ID from text input
     ID <- strsplit(input$well_input, " ")[[1]]
     
-    #Filters for chosen well ID
+    # Filters for chosen well ID
     wells <- filter(welldata, Well == ID) 
     
     ggplot(data = wells, mapping = aes(x = date, y = wtdepth, color = Well))+
@@ -142,13 +143,13 @@ server <- function(input, output, session) {
     
   })
   
+# Percipitation Plot============================================================
   
-  
-  #Creates precipitation plot
+  # Creates precipitation plot
   output$precplot <- renderPlot({
     
     
-    #converts date column to match well data
+    # Converts date column to match well data
     precip <- precip %>%
       mutate(DATE = as.POSIXct(DATE))
  
@@ -164,12 +165,13 @@ server <- function(input, output, session) {
     
   })
   
+# Weir Discharge Plot===========================================================
   
-  #Creates weir discharge plot
+  # Creates weir discharge plot
   output$weirplot <- renderPlot({
     
     
-    #Converts date column to match well data
+    # Converts date column to match well data
     weir <- weir %>%
       mutate(DATE = as.POSIXct(DATE))
     
@@ -186,6 +188,7 @@ server <- function(input, output, session) {
     
   })
   
+# Interactive Map ==============================================================
   
   # Load the well text file for mapping
   well_locations <- read_csv("Well_location_data.csv")
@@ -204,59 +207,59 @@ server <- function(input, output, session) {
   # Load UAA raster
   uaa <- raster("ws3_uaa.tif")
 
- # Load slope raster
+  # Load slope raster
   ws3slope <- raster("ws3_slope.tif")
   
-  #Load soil hpu raster
+  # Load soil hpu raster
   soil <- raster("ws3hpu_newallc.tif")
   
-   # remove NA's from rasters
+  # Remove NA's from rasters
   vals <- values(na.omit(twi))
   slope_vals <- values(na.omit(ws3slope))
   uaa_vals <- values(na.omit(uaa))
   soil_vals <- values(na.omit(soil))
   
-  # set twi colors for map
+  # Set twi colors for map
   twi_pal <- colorBin("Blues", domain = NULL, bins = 5, na.color = "transparent")
   
-  # set twi color scale for legend
+  # Set twi color scale for legend
   twi_pal2 <- colorNumeric(palette = "Blues", domain = vals, na.color = NA)
   
-  # renames stream types for legend
+  # Renames stream types for legend
   levels(ws3streams$StrType) <- c("Ephemeral", "Intermittent", "Perennial")
   
-  # set legend/colors for streams
+  # Set legend/colors for streams
   streams_col <- colorFactor(topo.colors(3), ws3streams$StrType)
   
 
-  # set UAA colors for map
+  # Set UAA colors for map
   uaa_pal <- colorBin(c("Blue", "Green", "Red"), domain = NULL, bins = c(0, 480, 2196, 6727, 11600, 17704)
                       , na.color = "transparent")
   
-  # set UAA color scale for legend
+  # Set UAA color scale for legend
   uaa_pal2 <- colorNumeric(palette = c("Blue", "Green", "Red"), domain = uaa_vals, na.color = NA)
   
   
-  # set slope colors for map
+  # Set slope colors for map
   pal_slope <- colorBin("YlOrBr", domain = NULL, bins = 5, na.color = "transparent")
   
-  # set slope color scale for legend
+  # Set slope color scale for legend
   pal_slope2 <- colorNumeric(palette = "YlOrBr", domain = slope_vals, na.color = NA)
   
 
-  #set soil colors for map
+  # Set soil colors for map
   pal_soil <- colorBin(c("Red", "Yellow", "Green", "Blue"), domain = NULL, bins = 4, na.color = "transparent")
   
-  # set soil color scale for legend
+  # Set soil color scale for legend
   pal_soil2 <- colorNumeric(c("Red", "Yellow", "Green", "Blue"), domain = soil_vals, na.color = NA)
  
   
-  #Creates the map
+  # Creates the map
   output$map <- renderLeaflet({
     leaflet(well_locations) %>%
       addProviderTiles(providers$Esri.WorldTopoMap) %>%
       
-      #Adds rasters and polygon files to map
+      # Adds rasters and polygon files to map
       addRasterImage(twi, colors = twi_pal, opacity = 0.5, group = "Topographic Wetness Index") %>%
       addRasterImage(ws3slope, colors = pal_slope, opacity = 0.5, group = "Slope") %>%
       addRasterImage(uaa, colors = uaa_pal, opacity = 0.5, group = "Upslope Accumulated Area") %>%
@@ -264,7 +267,7 @@ server <- function(input, output, session) {
       addPolylines(data = ws3streams, color = ~streams_col(ws3streams$StrType), group = "Streams", weight = 2.5) %>%
       addPolylines(data = ws3, color = "Black", fill = FALSE, weight = 2, fillOpacity = 0.2) %>%
       
-      #Adds well markers
+      # Adds well markers
       addCircleMarkers(layerId = well_locations$Well, lng = well_locations$POINT_X, lat = well_locations$POINT_Y,
                        color = "Black",
                        popup = paste("Well ID:", well_locations$Well, "<br>",
@@ -278,7 +281,7 @@ server <- function(input, output, session) {
                        stroke = FALSE,
                        group = "Well markers") %>%
       
-      #Creates legends
+      # Creates legends
       addLegend(position = 'topright', values = vals, pal = twi_pal2, labFormat = labelFormat(),
                 title = "Topographic <br> Wetness Index", 
                 group = "Topographic Wetness Index" ) %>%
@@ -293,24 +296,24 @@ server <- function(input, output, session) {
                        options = layersControlOptions(collapsed = TRUE)) %>%
       hideGroup(c("Topographic Wetness Index", "Slope", "Upslope Accumulated Area", "Soil", "Streams")) %>%
       
-      #Set map view
+      # Set map view
       setView(lng = -71.7187, lat = 43.9578, zoom = 15.1) %>%
       
-      #Reset map view button
+      # Reset map view button
       addResetMapButton() 
     
   })
   
-  #Selecting map markers to retrieve well ID
+  # Selecting map markers to retrieve well ID
   observeEvent(input$map_marker_click, { 
     site <- input$map_marker_click
     site_id <- site$id
     updateTextAreaInput(session, "well_input", value = paste(input$well_input, site_id))
   })
   
- 
+# Download =====================================================================
   
-  #Downloadable csv of selected dataset
+  # Downloadable csv of selected dataset
   make_df <- reactive({
     ID <- strsplit(input$well_input, " ")[[1]] #makes dataframe from user selection of data
     
@@ -322,7 +325,7 @@ server <- function(input, output, session) {
   
   
   
-  #Downloads subset of well data
+  # Downloads subset of well data
   output$downloadData <- downloadHandler(
     filename = function() {
       paste(input$dataset, ".csv", sep = "")
@@ -331,12 +334,12 @@ server <- function(input, output, session) {
       write.csv(make_df(), file, row.names = FALSE)
     })
   
-  #Updates date range when date is selected
+  # Updates date range when date is selected
   observeEvent(input$date, {
     ranges$x <- c(input$date[1], input$date[2])
   })
   
-  
+# Brushing =====================================================================
   
   # When a double-click happens, check if there's a brush on the plot.
   # If so, zoom to the brush bounds; if not, reset the zoom.
@@ -354,6 +357,8 @@ server <- function(input, output, session) {
     }
   }
   )
+  
+# User Guide ===================================================================
   
   # Pop up box if user clicks "App User Guide"
   observeEvent(input$appGuide, {
@@ -383,6 +388,8 @@ server <- function(input, output, session) {
     ))
   })
   
+# Info and Credits =============================================================
+  
   # Pop up box if user clicks "App Info and Credits"
   observeEvent(input$background, {
     showModal(modalDialog(
@@ -409,7 +416,7 @@ the second graph displays groundwater level in centimeters, and the third graph 
 
 <b> Attributions </b> <br>
          
-We would like to acknowledge our team members who worked effortlessly to create this app: Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen, and our 
+We would like to acknowledge our team members who worked hard to create this app: Macey O'Neill, Rachel Melton, Liza White, Ryan Whalen, and our 
 unofficial but honorary member Dr. JP Gannon. We also want to thank Dr. Robert Settlage with advanced research computing at VT who got our server up and running. 
 Finally, we want to thank Hubbard Brooke Researchers for collecting and giving us the datasets we needed to create our app! <br> <br>
            
@@ -426,7 +433,7 @@ Finally, we want to thank Hubbard Brooke Researchers for collecting and giving u
   })
 }
 
-
+# Run app ======================================================================
 
 # Runs the app
 app <- shinyApp(ui, server)
